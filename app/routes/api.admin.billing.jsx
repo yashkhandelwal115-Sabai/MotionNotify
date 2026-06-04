@@ -45,38 +45,32 @@ export const action = async ({ request }) => {
   if (targetPlan === PLANS.FREE) {
     console.log(`[Billing] Action: Downgrading to FREE for ${shop}`);
     
-    // Downgrade to FREE: Cancel current subscription via GraphQL if it exists
-    if (currentSubscription) {
-      await admin.graphql(
-        `#graphql
-        mutation appSubscriptionCancel($id: ID!) {
-          appSubscriptionCancel(id: $id) {
-            appSubscription {
-              id
-              status
-            }
-            userErrors {
-              field
-              message
-            }
-          }
-        }`,
-        { variables: { id: currentSubscription.id } }
-      );
-      console.log(`[Billing] Successfully cancelled subscription ${currentSubscription.id}`);
+    try {
+      // Downgrade to FREE: Cancel current subscription via Shopify billing API
+      if (currentSubscription) {
+        await billing.cancel({
+          subscriptionId: currentSubscription.id,
+          isTest: true,
+          prorate: true,
+        });
+        console.log(`[Billing] Successfully cancelled subscription ${currentSubscription.id}`);
+      }
+
+      // Update database
+      await db.shopSettings.upsert({
+        where: { shop },
+        update: { plan: PLANS.FREE, status: "CANCELLED" },
+        create: { shop, plan: PLANS.FREE, status: "CANCELLED" },
+      });
+
+      // Relock premium designs
+      await relockDesignsForPlan(shop, PLANS.FREE);
+
+      return Response.json({ redirectUrl: "/app?plan_cancelled=true" });
+    } catch (error) {
+      console.error("[Billing] Error downgrading to FREE:", error);
+      return Response.json({ error: error.message }, { status: 500 });
     }
-
-    // Update database
-    await db.shopSettings.upsert({
-      where: { shop },
-      update: { plan: PLANS.FREE, status: "CANCELLED" },
-      create: { shop, plan: PLANS.FREE, status: "CANCELLED" },
-    });
-
-    // Relock premium designs
-    await relockDesignsForPlan(shop, PLANS.FREE);
-
-    return Response.json({ redirectUrl: "/app?plan_cancelled=true" });
   }
 
   let planName;
@@ -93,26 +87,9 @@ export const action = async ({ request }) => {
   const isUpgrade = isPlanUpgrade(currentPlan, targetPlan);
   console.log(`[Billing] Action: ${isUpgrade ? "Upgrading" : "Downgrading"} from ${currentPlan} to ${targetPlan}`);
 
-  // If downgrading to a paid plan, cancel the current subscription first
-  if (!isUpgrade && currentSubscription) {
-    console.log(`[Billing] Cancelling current subscription ${currentSubscription.id} before downgrade...`);
-    await admin.graphql(
-      `#graphql
-      mutation appSubscriptionCancel($id: ID!) {
-        appSubscriptionCancel(id: $id) {
-          appSubscription {
-            id
-            status
-          }
-          userErrors {
-            field
-            message
-          }
-        }
-      }`,
-      { variables: { id: currentSubscription.id } }
-    );
-  }
+  // We rely on Shopify's replacementBehavior (ApplyImmediately) which automatically
+  // cancels the previous subscription when the merchant approves the new one.
+  // This is much safer than canceling before they even hit the approve page.
 
   const shopName = shop.replace(".myshopify.com", "");
   const returnUrl = `https://admin.shopify.com/store/${shopName}/apps/${process.env.SHOPIFY_API_KEY}/app/billing-return?plan=${targetPlan}&shop=${shop}`;
