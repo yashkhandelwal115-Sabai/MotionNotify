@@ -15,6 +15,8 @@ export const loader = async ({ request }) => {
   const url = new URL(request.url);
   const requestedPlan = url.searchParams.get("plan");
   const chargeId = url.searchParams.get("charge_id");
+  const shopParam = url.searchParams.get("shop");
+  const hostParam = url.searchParams.get("host");
 
   console.log(`[Billing Return] Handling return for shop: ${shop}`);
   console.log(`[Billing Return] Requested Plan: ${requestedPlan}`);
@@ -54,14 +56,14 @@ export const loader = async ({ request }) => {
       await relockDesignsForPlan(shop, finalPlan);
 
       console.log(`[Billing Return] Redirecting to embedded app dashboard: /app?plan_activated=true&plan=${finalPlan}`);
-      return redirect(`/app?plan_activated=true&plan=${finalPlan}`);
+      return redirect(`/app?plan_activated=true&plan=${finalPlan}&shop=${shopParam}&host=${hostParam}`);
     } else {
       // No active payment was completed
       console.log(`[Billing Return] No active payment found. Redirecting to app dashboard with error.`);
-      return redirect("/app?error=billing_not_completed");
+      return redirect(`/app?error=billing_not_completed&shop=${shopParam}&host=${hostParam}`);
     }
   } catch (error) {
     console.error("[Billing Return] Error in billing return handler:", error);
-    return redirect(`/app?error=billing_check_failed&message=${encodeURIComponent(error.message)}`);
+    return redirect(`/app?error=billing_check_failed&message=${encodeURIComponent(error.message)}&shop=${shopParam}&host=${hostParam}`);
   }
 };
