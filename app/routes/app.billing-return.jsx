@@ -30,7 +30,7 @@ export const loader = async ({ request }) => {
 
     if (checkResult.hasActivePayment) {
       // Find the subscription detail
-      const activeSubscription = checkResult.activeSubscriptions[0];
+      const activeSubscription = checkResult.appSubscriptions[0];
       let finalPlan = PLANS.FREE;
 
       if (activeSubscription) {

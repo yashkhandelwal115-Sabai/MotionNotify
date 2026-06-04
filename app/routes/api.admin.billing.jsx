@@ -33,7 +33,7 @@ export const action = async ({ request }) => {
   });
 
   if (checkResult.hasActivePayment) {
-    currentSubscription = checkResult.activeSubscriptions[0];
+    currentSubscription = checkResult.appSubscriptions[0];
     const name = currentSubscription.name;
     if (name === BILLING_STARTER) currentPlan = PLANS.STARTER;
     else if (name === BILLING_GROWTH) currentPlan = PLANS.GROWTH;
