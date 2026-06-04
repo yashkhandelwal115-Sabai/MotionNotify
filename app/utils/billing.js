@@ -30,3 +30,22 @@ export function getRequiredPlanForDesign(designType) {
   if (DESIGN_TIERS.GROWTH.includes(designType)) return PLANS.GROWTH;
   return PLANS.PREMIUM;
 }
+
+export const PLAN_RANK = {
+  [PLANS.FREE]: 0,
+  [PLANS.STARTER]: 1,
+  [PLANS.GROWTH]: 2,
+  [PLANS.PREMIUM]: 3,
+};
+
+export function isPlanUpgrade(currentPlan, targetPlan) {
+  return PLAN_RANK[targetPlan] > PLAN_RANK[currentPlan];
+}
+
+export function getDesignsToRelock(newPlan) {
+  const allowedDesigns = DESIGN_TIERS[newPlan] || DESIGN_TIERS.FREE;
+  const allDesigns = DESIGN_TIERS.PREMIUM; // contains all possible designs
+  
+  // Return designs that are NOT in the allowed designs for the new plan
+  return allDesigns.filter(design => !allowedDesigns.includes(design));
+}

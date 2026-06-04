@@ -5,7 +5,7 @@ import {
   BILLING_GROWTH,
   BILLING_PREMIUM,
 } from "../shopify.server";
-import { PLANS } from "../services/billing.server";
+import { PLANS, relockDesignsForPlan } from "../services/billing.server";
 import db from "../db.server";
 
 export const loader = async ({ request }) => {
@@ -14,6 +14,12 @@ export const loader = async ({ request }) => {
 
   const url = new URL(request.url);
   const requestedPlan = url.searchParams.get("plan");
+  const chargeId = url.searchParams.get("charge_id");
+
+  console.log(`[Billing Return] Handling return for shop: ${shop}`);
+  console.log(`[Billing Return] Requested Plan: ${requestedPlan}`);
+  console.log(`[Billing Return] Charge ID: ${chargeId}`);
+  console.log(`[Billing Return] Session validated for shop: ${session.shop}`);
 
   try {
     // Check if there's any active subscription on the shop
@@ -32,6 +38,8 @@ export const loader = async ({ request }) => {
         if (name === BILLING_STARTER) finalPlan = PLANS.STARTER;
         else if (name === BILLING_GROWTH) finalPlan = PLANS.GROWTH;
         else if (name === BILLING_PREMIUM) finalPlan = PLANS.PREMIUM;
+        
+        console.log(`[Billing Return] Found active subscription: ${name}, mapped to ${finalPlan}`);
       }
 
       await db.shopSettings.upsert({
@@ -40,13 +48,20 @@ export const loader = async ({ request }) => {
         create: { shop, plan: finalPlan, status: "ACTIVE" },
       });
 
+      console.log(`[Billing Return] Updated database with active plan: ${finalPlan}`);
+
+      // Relock designs if plan was downgraded
+      await relockDesignsForPlan(shop, finalPlan);
+
+      console.log(`[Billing Return] Redirecting to embedded app dashboard: /app?plan_activated=true&plan=${finalPlan}`);
       return redirect(`/app?plan_activated=true&plan=${finalPlan}`);
     } else {
       // No active payment was completed
+      console.log(`[Billing Return] No active payment found. Redirecting to app dashboard with error.`);
       return redirect("/app?error=billing_not_completed");
     }
   } catch (error) {
-    console.error("Error in billing return handler:", error);
+    console.error("[Billing Return] Error in billing return handler:", error);
     return redirect(`/app?error=billing_check_failed&message=${encodeURIComponent(error.message)}`);
   }
 };

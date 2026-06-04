@@ -3,7 +3,7 @@ import { useLoaderData, useFetcher, useNavigate } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import db from "../db.server";
 import { authenticate } from "../shopify.server";
-import { PLANS, isDesignUnlocked, getRequiredPlanForDesign } from "../utils/billing";
+import { PLANS, isDesignUnlocked, getRequiredPlanForDesign, isPlanUpgrade } from "../utils/billing";
 import AnnouncementRenderer from "../components/AnnouncementRenderer";
 import "../styles/dashboard.css";
 
@@ -290,7 +290,12 @@ export default function Index() {
   useEffect(() => {
     if (billingFetcher.data?.redirectUrl) {
       const url = billingFetcher.data.redirectUrl;
-      if (url.startsWith("http://") || url.startsWith("https://")) {
+      if (url.includes("plan_cancelled=true")) {
+        shopify.toast.show("Successfully downgraded to Free Plan.");
+        setCurrentPlan(PLANS.FREE);
+        // Refresh page to sync remaining state from loader
+        navigate("/app", { replace: true });
+      } else if (url.startsWith("http://") || url.startsWith("https://")) {
         window.open(url, "_top");
       } else {
         navigate(url);
@@ -1080,10 +1085,10 @@ export default function Index() {
               <button 
                 className="mn-action-btn mn-pricing-cta" 
                 style={{ background: currentPlan === PLANS.FREE ? "#4b5563" : "transparent", border: "1px solid var(--border-color)", color: currentPlan === PLANS.FREE ? "#9ca3af" : "#fff" }}
-                disabled={currentPlan === PLANS.FREE}
+                disabled={currentPlan === PLANS.FREE || billingFetcher.state === "submitting"}
                 onClick={() => handleUpgrade(PLANS.FREE)}
               >
-                {currentPlan === PLANS.FREE ? "Active Plan" : "Downgrade to Free"}
+                {currentPlan === PLANS.FREE ? "Active Plan" : billingFetcher.state === "submitting" ? "Processing..." : "Downgrade to Free"}
               </button>
             </div>
 
@@ -1100,10 +1105,10 @@ export default function Index() {
               </ul>
               <button 
                 className="mn-action-btn mn-pricing-cta"
-                disabled={currentPlan === PLANS.STARTER}
+                disabled={currentPlan === PLANS.STARTER || billingFetcher.state === "submitting"}
                 onClick={() => handleUpgrade(PLANS.STARTER)}
               >
-                {currentPlan === PLANS.STARTER ? "Active Plan" : "Upgrade to Starter"}
+                {currentPlan === PLANS.STARTER ? "Active Plan" : billingFetcher.state === "submitting" ? "Processing..." : isPlanUpgrade(currentPlan, PLANS.STARTER) ? "Upgrade to Starter" : "Downgrade to Starter"}
               </button>
             </div>
 
@@ -1120,10 +1125,10 @@ export default function Index() {
               </ul>
               <button 
                 className="mn-action-btn mn-pricing-cta"
-                disabled={currentPlan === PLANS.GROWTH}
+                disabled={currentPlan === PLANS.GROWTH || billingFetcher.state === "submitting"}
                 onClick={() => handleUpgrade(PLANS.GROWTH)}
               >
-                {currentPlan === PLANS.GROWTH ? "Active Plan" : "Upgrade to Growth"}
+                {currentPlan === PLANS.GROWTH ? "Active Plan" : billingFetcher.state === "submitting" ? "Processing..." : isPlanUpgrade(currentPlan, PLANS.GROWTH) ? "Upgrade to Growth" : "Downgrade to Growth"}
               </button>
             </div>
 
@@ -1141,10 +1146,10 @@ export default function Index() {
               </ul>
               <button 
                 className="mn-action-btn mn-pricing-cta"
-                disabled={currentPlan === PLANS.PREMIUM}
+                disabled={currentPlan === PLANS.PREMIUM || billingFetcher.state === "submitting"}
                 onClick={() => handleUpgrade(PLANS.PREMIUM)}
               >
-                {currentPlan === PLANS.PREMIUM ? "Active Plan" : "Upgrade to Premium"}
+                {currentPlan === PLANS.PREMIUM ? "Active Plan" : billingFetcher.state === "submitting" ? "Processing..." : "Upgrade to Premium"}
               </button>
             </div>
           </div>
