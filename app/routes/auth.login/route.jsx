@@ -13,44 +13,16 @@ export const action = async ({ request }) => {
   return { errors };
 };
 
-/* ── Inline SVG Icons ── */
+/* ── Inline Styles ── */
 
-function LogoIcon({ size = 20 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-    </svg>
-  );
-}
-
-function ShopIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>
-  );
-}
-
-function ArrowIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
-    </svg>
-  );
-}
-
-/* ── Styles (embedded inline for Shopify App Bridge context) ── */
-
-const pageStyles = {
+const S = {
   wrapper: {
     minHeight: "100vh",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    background: "linear-gradient(135deg, #09090b 0%, #0c0015 50%, #09090b 100%)",
+    background: "#07070e",
     padding: "2rem",
     position: "relative",
     overflow: "hidden",
@@ -60,98 +32,101 @@ const pageStyles = {
     width: "500px",
     height: "500px",
     borderRadius: "50%",
-    background: "rgba(139, 92, 246, 0.12)",
+    background: "rgba(139, 92, 246, 0.1)",
     filter: "blur(120px)",
     top: "-200px",
     left: "-150px",
-    animation: "blobDrift 20s ease-in-out infinite alternate",
   },
   bgBlob2: {
     position: "absolute",
     width: "400px",
     height: "400px",
     borderRadius: "50%",
-    background: "rgba(236, 72, 153, 0.1)",
+    background: "rgba(168, 85, 247, 0.08)",
     filter: "blur(100px)",
     bottom: "-150px",
     right: "-100px",
-    animation: "blobDrift 15s ease-in-out infinite alternate-reverse",
   },
   card: {
     width: "100%",
     maxWidth: "420px",
-    background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(12, 12, 20, 0.8)",
+    border: "1px solid rgba(255,255,255,0.06)",
     borderRadius: "24px",
-    padding: "2.5rem 2rem",
-    boxShadow: "0 24px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,255,255,0.06)",
+    padding: "3rem 2.5rem",
     position: "relative",
     zIndex: 1,
+    textAlign: "center",
+    animation: "fadeIn 0.6s ease-out",
   },
-  logo: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "10px",
-    marginBottom: "1.75rem",
+  bigM: {
+    width: "72px",
+    height: "72px",
+    margin: "0 auto 12px",
   },
-  logoIcon: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "10px",
-    background: "linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    boxShadow: "0 0 20px rgba(139,92,246,0.3)",
-    color: "white",
-  },
-  logoText: {
-    fontSize: "1.25rem",
-    fontWeight: "700",
+  brandName: {
+    fontSize: "1.75rem",
+    fontWeight: "800",
     letterSpacing: "-0.02em",
     color: "#fafafa",
+    marginBottom: "32px",
+  },
+  brandAccent: {
+    background: "linear-gradient(135deg, #a855f7, #8b5cf6)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    backgroundClip: "text",
   },
   title: {
-    fontSize: "1.375rem",
+    fontSize: "1.5rem",
     fontWeight: "700",
-    textAlign: "center",
-    margin: "0 0 0.5rem 0",
-    letterSpacing: "-0.02em",
     color: "#fafafa",
+    marginBottom: "10px",
+    letterSpacing: "-0.02em",
   },
   subtitle: {
     fontSize: "0.875rem",
-    textAlign: "center",
-    color: "rgba(255,255,255,0.45)",
-    margin: "0 0 2rem 0",
-    lineHeight: "1.5",
+    color: "rgba(255,255,255,0.4)",
+    lineHeight: "1.6",
+    marginBottom: "32px",
+  },
+  form: {
+    textAlign: "left",
   },
   label: {
     fontSize: "0.813rem",
     fontWeight: "500",
     color: "rgba(255,255,255,0.6)",
-    marginBottom: "6px",
+    marginBottom: "8px",
     display: "block",
   },
-  inputWrapper: {
+  inputWrap: {
     position: "relative",
-    display: "flex",
-    alignItems: "center",
-    marginBottom: "4px",
+    marginBottom: "12px",
   },
   inputIcon: {
     position: "absolute",
-    left: "14px",
-    color: "rgba(255,255,255,0.3)",
+    left: "16px",
+    top: "50%",
+    transform: "translateY(-50%)",
     display: "flex",
     alignItems: "center",
     pointerEvents: "none",
     zIndex: 1,
   },
+  shopifyBadge: {
+    width: "28px",
+    height: "28px",
+    borderRadius: "8px",
+    background: "linear-gradient(135deg, #96bf48, #5c8c1f)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "white",
+  },
   input: {
     width: "100%",
-    padding: "14px 14px 14px 44px",
+    padding: "16px 16px 16px 56px",
     background: "rgba(255,255,255,0.04)",
     border: "1px solid rgba(255,255,255,0.1)",
     borderRadius: "14px",
@@ -162,22 +137,33 @@ const pageStyles = {
     boxSizing: "border-box",
     transition: "all 0.25s ease",
   },
-  inputError: {
+  inputErr: {
     borderColor: "rgba(239,68,68,0.5)",
     boxShadow: "0 0 0 3px rgba(239,68,68,0.1)",
   },
-  errorText: {
+  errText: {
     fontSize: "0.75rem",
     color: "#f87171",
-    marginTop: "4px",
+    marginBottom: "8px",
   },
-  button: {
+  createLink: {
+    fontSize: "0.8rem",
+    color: "rgba(255,255,255,0.4)",
+    marginBottom: "24px",
+    textAlign: "center",
+  },
+  link: {
+    color: "#a78bfa",
+    textDecoration: "none",
+    fontWeight: "500",
+  },
+  btn: {
     width: "100%",
-    padding: "14px 24px",
-    background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%)",
+    padding: "16px 24px",
+    background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 40%, #6d28d9 100%)",
     color: "white",
-    fontSize: "0.938rem",
-    fontWeight: "600",
+    fontSize: "1rem",
+    fontWeight: "700",
     fontFamily: "'Inter', sans-serif",
     border: "none",
     borderRadius: "14px",
@@ -185,33 +171,44 @@ const pageStyles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: "8px",
-    boxShadow: "0 4px 16px rgba(139,92,246,0.3)",
-    marginTop: "1rem",
+    gap: "10px",
+    boxShadow: "0 4px 20px rgba(139,92,246,0.35)",
     transition: "all 0.3s ease",
   },
-  tagline: {
-    textAlign: "center",
-    fontSize: "0.688rem",
-    color: "rgba(255,255,255,0.2)",
-    letterSpacing: "0.15em",
-    textTransform: "uppercase",
-    fontWeight: "500",
-    marginTop: "2rem",
+  btnIcon: {
+    width: "22px",
+    height: "22px",
+    borderRadius: "6px",
+    background: "rgba(255,255,255,0.2)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "white",
+  },
+  spinner: {
+    width: "20px",
+    height: "20px",
+    border: "2px solid rgba(255,255,255,0.3)",
+    borderTopColor: "white",
+    borderRadius: "50%",
+    animation: "spin 0.6s linear infinite",
+  },
+  secure: {
+    marginTop: "20px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+    fontSize: "0.8rem",
+    color: "rgba(255,255,255,0.3)",
   },
 };
 
-const animationCSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-  @keyframes blobDrift {
-    0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(30px, -20px) scale(1.05); }
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(16px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  body { margin: 0; background: #09090b; }
+const animCSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  body { margin: 0; background: #07070e; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
 export default function Auth() {
@@ -225,43 +222,49 @@ export default function Auth() {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: animationCSS }} />
-      <div style={pageStyles.wrapper}>
-        {/* Background blobs */}
-        <div style={pageStyles.bgBlob1} />
-        <div style={pageStyles.bgBlob2} />
+      <style dangerouslySetInnerHTML={{ __html: animCSS }} />
+      <div style={S.wrapper}>
+        <div style={S.bgBlob1} />
+        <div style={S.bgBlob2} />
 
-        {/* Card */}
-        <div style={{ ...pageStyles.card, animation: "fadeIn 0.6s ease-out" }}>
-          {/* Logo */}
-          <div style={pageStyles.logo}>
-            <div style={pageStyles.logoIcon}>
-              <LogoIcon />
-            </div>
-            <span style={pageStyles.logoText}>MotionNotify</span>
+        <div style={S.card}>
+          {/* Big M Logo */}
+          <div style={S.bigM}>
+            <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+              <defs>
+                <linearGradient id="mG" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#a855f7" />
+                  <stop offset="50%" stopColor="#8b5cf6" />
+                  <stop offset="100%" stopColor="#ec4899" />
+                </linearGradient>
+              </defs>
+              <path d="M12 56V20L24 44L36 20L48 44L60 20V56" stroke="url(#mG)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              <circle cx="36" cy="14" r="4" fill="url(#mG)" opacity="0.6" />
+            </svg>
           </div>
 
-          {/* Title */}
-          <h2 style={pageStyles.title}>Connect Your Shopify Store</h2>
-          <p style={pageStyles.subtitle}>
-            Enter your store domain to continue to your dashboard.
+          <div style={S.brandName}>
+            Motion<span style={S.brandAccent}>Notify</span>
+          </div>
+
+          <h2 style={S.title}>Connect Your Shopify Store</h2>
+          <p style={S.subtitle}>
+            Enter your Shopify store domain to access your MotionNotify dashboard.
           </p>
 
-          {/* Form */}
-          <Form method="post">
-            <label style={pageStyles.label} htmlFor="auth-shop">
-              Store domain
-            </label>
-            <div style={pageStyles.inputWrapper}>
-              <span style={pageStyles.inputIcon}>
-                <ShopIcon />
+          <Form method="post" style={S.form}>
+            <label style={S.label} htmlFor="auth-shop">Shopify store domain</label>
+            <div style={S.inputWrap}>
+              <span style={S.inputIcon}>
+                <span style={S.shopifyBadge}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M15.337 23.979l7.216-1.561s-2.604-17.613-2.625-17.73c-.021-.117-.144-.2-.247-.2s-2.106-.153-2.106-.153-1.394-1.386-1.55-1.542c-.156-.156-.461-.109-.58-.073-.003.001-.323.099-.823.254-.489-1.415-1.352-2.715-2.867-2.715-.042 0-.085.002-.127.005-.393-.52-.879-.748-1.295-.748C7.287-.484 5.483 3.119 4.898 5.312l-2.505.777c-.78.244-.804.268-.906.999C1.38 7.727 0 18.44 0 18.44l12.313 2.153 3.024 3.386zm-3.296-19.53c0 .083-.008.166-.022.248-.651-2.065-1.889-2.758-2.868-2.868.765-.926 1.556-1.203 2.05-1.203.352 0 .602.154.84.454v3.369z" />
+                  </svg>
+                </span>
               </span>
               <input
                 id="auth-shop"
-                style={{
-                  ...pageStyles.input,
-                  ...(hasError ? pageStyles.inputError : {}),
-                }}
+                style={{ ...S.input, ...(hasError ? S.inputErr : {}) }}
                 name="shop"
                 value={shop}
                 onChange={(e) => setShop(e.currentTarget.value)}
@@ -282,31 +285,53 @@ export default function Auth() {
                 }}
               />
             </div>
-            {hasError && <div style={pageStyles.errorText}>{errors.shop}</div>}
+            {hasError && <div style={S.errText}>{errors.shop}</div>}
+
+            <div style={S.createLink}>
+              Don&apos;t have a store?{" "}
+              <a style={S.link} href="https://www.shopify.com/free-trial" target="_blank" rel="noopener noreferrer">
+                Create one on Shopify ↗
+              </a>
+            </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              style={{
-                ...pageStyles.button,
-                ...(isSubmitting ? { opacity: 0.8, pointerEvents: "none" } : {}),
-              }}
+              style={{ ...S.btn, ...(isSubmitting ? { opacity: 0.8, pointerEvents: "none" } : {}) }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-1px)";
-                e.currentTarget.style.boxShadow = "0 8px 24px rgba(139,92,246,0.4)";
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 8px 30px rgba(139,92,246,0.45)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 4px 16px rgba(139,92,246,0.3)";
+                e.currentTarget.style.boxShadow = "0 4px 20px rgba(139,92,246,0.35)";
               }}
             >
-              {isSubmitting ? "Connecting…" : "Continue with Shopify"}
-              {!isSubmitting && <ArrowIcon />}
+              {isSubmitting ? (
+                <>
+                  <div style={S.spinner} />
+                  Connecting…
+                </>
+              ) : (
+                <>
+                  <span style={S.btnIcon}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M15.337 23.979l7.216-1.561s-2.604-17.613-2.625-17.73c-.021-.117-.144-.2-.247-.2s-2.106-.153-2.106-.153-1.394-1.386-1.55-1.542c-.156-.156-.461-.109-.58-.073-.003.001-.323.099-.823.254-.489-1.415-1.352-2.715-2.867-2.715-.042 0-.085.002-.127.005-.393-.52-.879-.748-1.295-.748C7.287-.484 5.483 3.119 4.898 5.312l-2.505.777c-.78.244-.804.268-.906.999C1.38 7.727 0 18.44 0 18.44l12.313 2.153 3.024 3.386zm-3.296-19.53c0 .083-.008.166-.022.248-.651-2.065-1.889-2.758-2.868-2.868.765-.926 1.556-1.203 2.05-1.203.352 0 .602.154.84.454v3.369z" />
+                    </svg>
+                  </span>
+                  Continue with Shopify →
+                </>
+              )}
             </button>
           </Form>
 
-          {/* Tagline */}
-          <div style={pageStyles.tagline}>Announce · Engage · Convert</div>
+          <div style={S.secure}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            Secure authentication via Shopify
+          </div>
         </div>
       </div>
     </>
