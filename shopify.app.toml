@@ -54,8 +54,11 @@ api_version = "2026-07"
   shop_deletion_url = "/webhooks/shop/redact"
 
 [auth]
-redirect_urls = [ "https://motion-notify.vercel.app/api/auth" ]
+redirect_urls = [
+  "https://motion-notify.vercel.app/auth/callback",
+  "https://motion-notify.vercel.app/auth/shopify/callback",
+  "https://motion-notify.vercel.app/api/auth/callback"
+]
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true
