@@ -2,7 +2,7 @@
 
 client_id = "5671a5ef05b0e7b387200584c3a019e5"
 name = "MOTIONNOTIFY"
-application_url = "https://example.com"
+application_url = "https://motion-notify.vercel.app"
 embedded = true
 
 [access_scopes]
@@ -54,7 +54,7 @@ api_version = "2026-07"
   shop_deletion_url = "/webhooks/shop/redact"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://motion-notify.vercel.app/api/auth" ]
 
 [build]
 include_config_on_deploy = true
