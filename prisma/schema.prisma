@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+model ShopSettings {
+  id          String   @id @default(uuid())
+  shop        String   @unique
+  plan        String   @default("FREE") // FREE, STARTER, GROWTH, PREMIUM
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AnnouncementConfig {
+  id               String    @id @default(uuid())
+  shop             String
+  name             String    @default("Announcement Campaign")
+  designType       String    @default("FREE") // FREE, GRADIENT, SLIDING, GLASSMORPHISM, CAROUSEL, LUXURY, INTERACTIVE, DYNAMIC
+  isActive         Boolean   @default(false)
+  text             String    @default("Special Announcement!")
+  heading          String    @default("")
+  subheading       String    @default("")
+  fontColor        String    @default("#FFFFFF")
+  bgColor          String    @default("#000000")
+  gradientColor1   String    @default("#ff7e5f")
+  gradientColor2   String    @default("#feb47b")
+  buttonText       String    @default("Shop Now")
+  buttonUrl        String    @default("")
+  buttonStyle      String    @default("solid") // solid, outline, glass
+  countdownDate    String    @default("")
+  cards            String    @default("[]") // JSON array of rotating cards
+  borderRadius     Int       @default(8)
+  animationEnabled Boolean   @default(true)
+  mobileVisible    Boolean   @default(true)
+  desktopVisible   Boolean   @default(true)
+  rotationTiming   Int       @default(5) // in seconds
+  badgeLabel       String    @default("")
+  icon             String    @default("")
+  scheduledStart   String    @default("")
+  scheduledEnd     String    @default("")
+  targetCountries  String    @default("") // comma-separated country codes
+  priority         Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid())
+  shop       String
+  configId   String
+  eventType  String   // IMPRESSION, CLICK
+  deviceType String   // MOBILE, DESKTOP
+  country    String   @default("UNKNOWN")
+  createdAt  DateTime @default(now())
+}
+
