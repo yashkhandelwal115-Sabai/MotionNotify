@@ -46,12 +46,11 @@ export const action = async ({ request }) => {
     console.log(`[Billing] Action: Downgrading to FREE for ${shop}`);
     
     try {
-      // Downgrade to FREE: Cancel current subscription via Shopify billing API
       if (currentSubscription) {
         await billing.cancel({
           subscriptionId: currentSubscription.id,
           isTest: true,
-          prorate: true,
+          prorate: false,
         });
         console.log(`[Billing] Successfully cancelled subscription ${currentSubscription.id}`);
       }
@@ -69,7 +68,8 @@ export const action = async ({ request }) => {
       return Response.json({ redirectUrl: "/app?plan_cancelled=true" });
     } catch (error) {
       console.error("[Billing] Error downgrading to FREE:", error);
-      return Response.json({ error: error.message }, { status: 500 });
+      // Return 200 with error property to prevent Remix ErrorBoundary from crashing the UI
+      return Response.json({ error: error.message || "Failed to cancel subscription" });
     }
   }
 
@@ -81,7 +81,8 @@ export const action = async ({ request }) => {
   } else if (targetPlan === PLANS.PREMIUM) {
     planName = BILLING_PREMIUM;
   } else {
-    return Response.json({ error: "Invalid plan" }, { status: 400 });
+    // Return 200 with error property
+    return Response.json({ error: "Invalid plan requested" });
   }
 
   const isUpgrade = isPlanUpgrade(currentPlan, targetPlan);
@@ -118,6 +119,7 @@ export const action = async ({ request }) => {
     if (error.errorData) {
       errorMessage += " | Details: " + JSON.stringify(error.errorData);
     }
-    return Response.json({ error: errorMessage }, { status: 500 });
+    // Return 200 with error property to prevent Remix ErrorBoundary from crashing the UI
+    return Response.json({ error: errorMessage });
   }
 };
