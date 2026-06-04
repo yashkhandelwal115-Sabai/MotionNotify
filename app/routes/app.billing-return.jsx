@@ -1,4 +1,5 @@
-import { redirect } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
+import { useEffect } from "react";
 import {
   authenticate,
   BILLING_STARTER,
@@ -56,14 +57,33 @@ export const loader = async ({ request }) => {
       await relockDesignsForPlan(shop, finalPlan);
 
       console.log(`[Billing Return] Redirecting to embedded app dashboard: /app?plan_activated=true&plan=${finalPlan}`);
-      return redirect(`/app?plan_activated=true&plan=${finalPlan}&shop=${shopParam}&host=${hostParam}`);
+      return { success: true, plan: finalPlan };
     } else {
       // No active payment was completed
       console.log(`[Billing Return] No active payment found. Redirecting to app dashboard with error.`);
-      return redirect(`/app?error=billing_not_completed&shop=${shopParam}&host=${hostParam}`);
+      return { success: false, error: "billing_not_completed" };
     }
   } catch (error) {
     console.error("[Billing Return] Error in billing return handler:", error);
-    return redirect(`/app?error=billing_check_failed&message=${encodeURIComponent(error.message)}&shop=${shopParam}&host=${hostParam}`);
+    return { success: false, error: "billing_check_failed", message: error.message };
   }
 };
+
+export default function BillingReturn() {
+  const data = useLoaderData();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (data.success) {
+      navigate(`/app?plan_activated=true&plan=${data.plan}`);
+    } else {
+      navigate(`/app?error=${data.error}&message=${encodeURIComponent(data.message || "")}`);
+    }
+  }, [data, navigate]);
+
+  return (
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+      <p>Confirming your subscription...</p>
+    </div>
+  );
+}
