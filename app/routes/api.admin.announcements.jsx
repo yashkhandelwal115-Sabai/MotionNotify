@@ -19,7 +19,7 @@ export const loader = async ({ request }) => {
   return Response.json({ configs, settings });
 };
 
-// Action: Create, Update, or Delete configurations
+// Action: Create, Update, Delete, or Toggle configurations
 export const action = async ({ request }) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
@@ -27,19 +27,99 @@ export const action = async ({ request }) => {
   const url = new URL(request.url);
   const actionType = url.searchParams.get("action") || "save";
 
-  if (actionType === "delete") {
-    const formData = await request.formData();
-    const id = formData.get("id");
+  // ─── TOGGLE: Lean activation/deactivation with single-active enforcement ───
+  if (actionType === "toggle") {
+    try {
+      const payload = await request.json();
+      const { id, isActive } = payload;
 
-    if (!id) {
-      return Response.json({ error: "Missing config ID" }, { status: 400 });
+      if (!id) {
+        console.error("[API][Toggle] Missing campaign ID", { shop });
+        return Response.json({ error: "Missing campaign ID" }, { status: 400 });
+      }
+
+      console.log(`[API][Toggle] Request — campaign: ${id}, target isActive: ${isActive}, shop: ${shop}`);
+
+      // Verify the campaign exists and belongs to this shop
+      const existing = await db.announcementConfig.findUnique({
+        where: { id },
+      });
+
+      if (!existing || existing.shop !== shop) {
+        console.error(`[API][Toggle] Campaign not found: ${id}, shop: ${shop}`);
+        return Response.json({ error: "Campaign not found" }, { status: 404 });
+      }
+
+      let updatedConfig;
+
+      if (isActive) {
+        // SINGLE-ACTIVE ENFORCEMENT: Deactivate all other campaigns, then activate this one
+        // Uses Prisma $transaction for atomicity
+        const [, activated] = await db.$transaction([
+          // Step 1: Pause all other active campaigns for this shop
+          db.announcementConfig.updateMany({
+            where: {
+              shop,
+              id: { not: id },
+              isActive: true,
+            },
+            data: { isActive: false },
+          }),
+          // Step 2: Activate the target campaign
+          db.announcementConfig.update({
+            where: { id, shop },
+            data: { isActive: true },
+          }),
+        ]);
+
+        updatedConfig = activated;
+        console.log(`[API][Toggle] Campaign ACTIVATED: ${id} (${existing.name}). All other campaigns paused. Shop: ${shop}`);
+      } else {
+        // Simple deactivation — no need to touch other campaigns
+        updatedConfig = await db.announcementConfig.update({
+          where: { id, shop },
+          data: { isActive: false },
+        });
+        console.log(`[API][Toggle] Campaign PAUSED: ${id} (${existing.name}). Shop: ${shop}`);
+      }
+
+      return Response.json({
+        success: true,
+        config: updatedConfig,
+        action: isActive ? "activated" : "paused",
+      });
+    } catch (error) {
+      console.error(`[API][Toggle] Error toggling campaign:`, error);
+      return Response.json(
+        { error: `Failed to toggle campaign: ${error.message}` },
+        { status: 500 }
+      );
     }
+  }
 
-    await db.announcementConfig.delete({
-      where: { id, shop },
-    });
+  // ─── DELETE ───
+  if (actionType === "delete") {
+    try {
+      const formData = await request.formData();
+      const id = formData.get("id");
 
-    return Response.json({ success: true });
+      if (!id) {
+        return Response.json({ error: "Missing config ID" }, { status: 400 });
+      }
+
+      await db.announcementConfig.delete({
+        where: { id, shop },
+      });
+
+      console.log(`[API][Delete] Campaign deleted: ${id}, shop: ${shop}`);
+      return Response.json({ success: true });
+    } catch (error) {
+      console.error(`[API][Delete] Error deleting campaign:`, error);
+      return Response.json(
+        { error: `Failed to delete campaign: ${error.message}` },
+        { status: 500 }
+      );
+    }
   }
 
   // Save / Update config
@@ -87,10 +167,17 @@ export const action = async ({ request }) => {
     );
   }
 
-  // If this config is being activated, optionally deactivate others if we want single-active
-  // For standard behavior, let's keep multiple campaigns active but respect priority and scheduling.
+  // Single-active enforcement: if saving with isActive=true, pause all others
   if (isActive && id) {
-    // If saving/activating, verify no scheduling conflicts or let prioritizer handle it.
+    await db.announcementConfig.updateMany({
+      where: {
+        shop,
+        id: { not: id },
+        isActive: true,
+      },
+      data: { isActive: false },
+    });
+    console.log(`[API][Save] Single-active enforcement: paused other campaigns for shop: ${shop}`);
   }
 
   const configData = {
@@ -137,5 +224,6 @@ export const action = async ({ request }) => {
     });
   }
 
+  console.log(`[API][Save] Campaign saved: ${savedConfig.id} (${savedConfig.name}), isActive: ${savedConfig.isActive}, shop: ${shop}`);
   return Response.json({ success: true, config: savedConfig });
 };

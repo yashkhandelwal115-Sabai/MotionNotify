@@ -8,11 +8,14 @@ export const loader = async ({ request }) => {
   const device = url.searchParams.get("device") || "desktop";
 
   if (!shop) {
+    console.error("[Storefront] Missing shop parameter in API request");
     return Response.json({ error: "Missing shop parameter" }, { 
       status: 400,
       headers: { "Access-Control-Allow-Origin": "*" } 
     });
   }
+
+  console.log(`[Storefront] Fetching active campaigns for: ${shop} (device: ${device}, country: ${country || 'N/A'})`);
 
   // Fetch all active configurations for this shop
   const activeConfigs = await db.announcementConfig.findMany({

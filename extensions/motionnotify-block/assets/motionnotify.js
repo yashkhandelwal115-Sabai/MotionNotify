@@ -6,16 +6,18 @@
   const country = root.getAttribute("data-country") || "";
   const device = window.innerWidth <= 768 ? "mobile" : "desktop";
 
-  // Auto-detect app URL from the script source
-  const scriptSrc = document.currentScript ? document.currentScript.src : "";
-  let appUrl = "http://localhost:3000"; // fallback
-  if (scriptSrc && scriptSrc.startsWith("http")) {
-    appUrl = new URL(scriptSrc).origin;
-  }
+  // Use Shopify App Proxy to route traffic to the app backend safely without CORS
+  const appProxyUrl = "/apps/motionnotify";
+  
+  console.log(`[MotionNotify] Initializing storefront script for shop: ${shop}`);
+  console.log(`[MotionNotify] Fetching campaigns via App Proxy...`);
 
   // Fetch campaign
-  fetch(`${appUrl}/api/announcements?shop=${shop}&country=${country}&device=${device}`)
-    .then((res) => res.json())
+  fetch(`${appProxyUrl}/api/announcements?shop=${shop}&country=${country}&device=${device}`)
+    .then((res) => {
+      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+      return res.json();
+    })
     .then((data) => {
       const campaign = data.campaign;
       if (!campaign) {
@@ -309,7 +311,7 @@
     };
 
     navigator.sendBeacon(
-      `${appUrl}/api/analytics`,
+      `${appProxyUrl}/api/analytics`,
       JSON.stringify(payload)
     );
   }

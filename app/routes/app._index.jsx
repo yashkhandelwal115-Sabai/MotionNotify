@@ -167,6 +167,7 @@ export default function Index() {
 
   // Campaign configurations CRUD fetchers
   const configSaveFetcher = useFetcher();
+  const toggleFetcher = useFetcher();
   const billingFetcher = useFetcher();
 
   // Current active plan
@@ -305,16 +306,35 @@ export default function Index() {
     }
   }, [billingFetcher.data, navigate, shopify]);
 
+  // Dedicated toggle handler to prevent conflicts with save operations
+  useEffect(() => {
+    if (toggleFetcher.data?.success) {
+      if (toggleFetcher.data.action === "activated") {
+        shopify.toast.show("Campaign activated — now live!");
+        console.log("[MotionNotify] Toggle success — campaign is now ACTIVE");
+      } else {
+        shopify.toast.show("Campaign paused.");
+        console.log("[MotionNotify] Toggle success — campaign PAUSED");
+      }
+    } else if (toggleFetcher.data?.error) {
+      shopify.toast.show(`Failed to toggle: ${toggleFetcher.data.error}`);
+      console.error("[MotionNotify] Toggle failed", toggleFetcher.data.error);
+    }
+  }, [toggleFetcher.data]);
+
   // Activate/Deactivate directly from Table
   const toggleCampaignActive = (cfg) => {
-    configSaveFetcher.submit(
+    const newStatus = !cfg.isActive;
+    console.log(`[MotionNotify] Toggling campaign: ${cfg.id} → ${newStatus ? 'ACTIVE' : 'PAUSED'}`);
+    
+    toggleFetcher.submit(
       {
-        ...cfg,
-        isActive: !cfg.isActive,
+        id: cfg.id,
+        isActive: newStatus,
       },
       {
         method: "POST",
-        action: "/api/admin/announcements",
+        action: "/api/admin/announcements?action=toggle",
         encType: "application/json"
       }
     );

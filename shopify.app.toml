@@ -62,3 +62,9 @@ redirect_urls = [
 
 [build]
 automatically_update_urls_on_dev = true
+
+[app_proxy]
+url = "https://motion-notify.vercel.app/"
+subpath = "motionnotify"
+prefix = "apps"
+
