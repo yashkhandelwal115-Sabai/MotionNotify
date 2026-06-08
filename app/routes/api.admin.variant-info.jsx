@@ -75,7 +75,6 @@ export const loader = async ({ request }) => {
     });
   } catch (err) {
     console.error("[API] Error fetching variant info:", err);
-    require('fs').writeFileSync('graphql_error.log', err.stack || String(err));
-    return Response.json({ error: "Failed to fetch variant info", details: err.message || String(err) }, { status: 200 });
+    return Response.json({ error: "Failed to fetch variant info", details: err.message || String(err) }, { status: 500 });
   }
 };
