@@ -849,9 +849,11 @@ export default function Index() {
                             ? "⚠️ Tracking Disabled"
                             : selectedProductInfo?.inventoryQuantity !== null && selectedProductInfo?.inventoryQuantity !== undefined
                               ? `📊 Inventory: ${selectedProductInfo.inventoryQuantity}`
-                              : variantInfoFetcher.state === "loading" 
-                                ? "⏳ Loading..."
-                                : "📊 Fetching inventory..."
+                              : variantInfoFetcher.data?.error 
+                                ? "⚠️ Error fetching inventory"
+                                : variantInfoFetcher.state === "loading"
+                                  ? "⏳ Loading..."
+                                  : "📊 Inventory Unavailable"
                           }
                         </div>
 

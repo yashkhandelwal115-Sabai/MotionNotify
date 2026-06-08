@@ -85,10 +85,18 @@ export const loader = async ({ request }) => {
             query getVariantData($id: ID!) {
               node(id: $id) {
                 ... on ProductVariant {
-                  inventoryQuantity
-                  inventoryManagement
                   price
                   compareAtPrice
+                  inventoryItem {
+                    tracked
+                    inventoryLevels(first: 10) {
+                      nodes {
+                        quantities(names: ["available"]) {
+                          quantity
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }`,
@@ -99,8 +107,19 @@ export const loader = async ({ request }) => {
           const variantNode = responseJson.data?.node;
 
           if (variantNode) {
+            let totalInventory = 0;
+            let hasInventoryData = false;
+            if (variantNode.inventoryItem?.inventoryLevels?.nodes) {
+              hasInventoryData = true;
+              for (const level of variantNode.inventoryItem.inventoryLevels.nodes) {
+                if (level.quantities && level.quantities.length > 0) {
+                  totalInventory += level.quantities[0].quantity || 0;
+                }
+              }
+            }
+
             const fetchedData = {
-              targetInventory: variantNode.inventoryManagement ? variantNode.inventoryQuantity : null,
+              targetInventory: variantNode.inventoryItem?.tracked ? totalInventory : null,
               targetPrice: variantNode.price,
               targetCompareAtPrice: variantNode.compareAtPrice || null
             };

@@ -9,9 +9,10 @@ export const loader = async ({ request }) => {
     return Response.json({ error: "Missing variantId" }, { status: 400 });
   }
 
+  console.log(`[API:VariantInfo] Fetching variant info for ID: ${variantId}`);
+
   try {
-    const response = await admin.graphql(
-      `#graphql
+    const query = `#graphql
       query getVariantInfo($id: ID!) {
         node(id: $id) {
           ... on ProductVariant {
@@ -29,9 +30,6 @@ export const loader = async ({ request }) => {
                 }
               }
             }
-            image {
-              url
-            }
             product {
               id
               title
@@ -41,11 +39,14 @@ export const loader = async ({ request }) => {
             }
           }
         }
-      }`,
-      { variables: { id: variantId } }
-    );
+      }`;
+
+    console.log(`[API:VariantInfo] Executing GraphQL Query with variables: ${JSON.stringify({ id: variantId })}`);
+    const response = await admin.graphql(query, { variables: { id: variantId } });
 
     const responseJson = await response.json();
+    console.log(`[API:VariantInfo] GraphQL Response:`, JSON.stringify(responseJson, null, 2));
+
     const node = responseJson.data?.node;
 
     if (!node) {
@@ -74,7 +75,12 @@ export const loader = async ({ request }) => {
       productTitle: node.product?.title,
     });
   } catch (err) {
-    console.error("[API] Error fetching variant info:", err);
+    console.error(`[API:VariantInfo] Caught Error fetching variant info:`, err.message);
+    if (err.response) {
+      console.error(`[API:VariantInfo] Shopify GraphQL Error Response:`, JSON.stringify(err.response, null, 2));
+    } else {
+      console.error(`[API:VariantInfo] Full error stack:`, err.stack || err);
+    }
     return Response.json({ error: "Failed to fetch variant info", details: err.message || String(err) }, { status: 500 });
   }
 };
