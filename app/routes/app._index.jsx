@@ -202,11 +202,15 @@ export default function Index() {
     scheduledEnd: "",
     targetCountries: "",
     priority: 0,
+    targetProductId: "",
+    targetVariantId: "",
   };
 
   const [formConfig, setFormConfig] = useState(initialFormState);
   const [editorCards, setEditorCards] = useState([]);
   const [viewportMode, setViewportMode] = useState("desktop");
+  const [selectedProductInfo, setSelectedProductInfo] = useState(null);
+  const variantInfoFetcher = useFetcher();
 
   // Load configuration into studio editor
   const editCampaign = (cfg) => {
@@ -229,6 +233,28 @@ export default function Index() {
   useEffect(() => {
     setFormConfig(prev => ({ ...prev, cards: editorCards }));
   }, [editorCards]);
+
+  // Fetch variant info when targetVariantId changes
+  useEffect(() => {
+    if (formConfig.targetVariantId) {
+      variantInfoFetcher.load(`/api/admin/variant-info?variantId=${encodeURIComponent(formConfig.targetVariantId)}`);
+    } else {
+      setSelectedProductInfo(null);
+    }
+  }, [formConfig.targetVariantId]);
+
+  // Update selectedProductInfo when fetcher returns
+  useEffect(() => {
+    if (variantInfoFetcher.data && !variantInfoFetcher.data.error) {
+      setSelectedProductInfo(variantInfoFetcher.data);
+      setFormConfig((prev) => ({
+        ...prev,
+        targetInventory: variantInfoFetcher.data.inventoryQuantity
+      }));
+    } else if (variantInfoFetcher.data?.error) {
+      setSelectedProductInfo(null);
+    }
+  }, [variantInfoFetcher.data]);
 
   // Handle Input Changes
   const handleInputChange = (field, value) => {
@@ -630,7 +656,7 @@ export default function Index() {
             {/* Editor Input Controls */}
             <div className="mn-editor-panel">
               <div className="mn-form-group">
-                <label className="mn-form-label">Campaign Reference Name</label>
+                <label className="mn-form-label">Campaign Reference Name (UPDATED)</label>
                 <input 
                   type="text" 
                   className="mn-input-text" 
@@ -663,6 +689,206 @@ export default function Index() {
                     );
                   })}
                 </div>
+              </div>
+
+              <hr style={{ borderColor: "var(--border-color)", margin: "24px 0" }} />
+
+              {/* ─── PRODUCT TARGETING (INVENTORY & DISCOUNT) ─── */}
+              <div className="mn-form-group" style={{ 
+                background: "linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.08))", 
+                border: "1px solid rgba(99,102,241,0.2)", 
+                borderRadius: "12px", 
+                padding: "20px" 
+              }}>
+                <label className="mn-form-label" style={{ fontSize: "14px", fontWeight: "700", marginBottom: "6px" }}>
+                  📦 Product Inventory Targeting
+                </label>
+                <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: "0 0 16px 0", lineHeight: "1.5" }}>
+                  Link a product to this campaign. Use <code style={{ background: "rgba(255,255,255,0.1)", padding: "2px 6px", borderRadius: "4px" }}>{`{inventory}`}</code> and <code style={{ background: "rgba(255,255,255,0.1)", padding: "2px 6px", borderRadius: "4px" }}>{`{discount}`}</code> in your text above to display live values on <strong>any page</strong>.
+                </p>
+
+                <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", flexWrap: "wrap" }}>
+                  <button 
+                    type="button" 
+                    className="mn-action-btn"
+                    style={{ 
+                      background: "linear-gradient(135deg, #6366f1, #a855f7)", 
+                      border: "none", 
+                      padding: "10px 20px", 
+                      fontWeight: "600",
+                      fontSize: "13px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      color: "#fff"
+                    }}
+                    onClick={async () => {
+                      try {
+                        const selected = await shopify.resourcePicker({
+                          type: 'product',
+                          action: 'select',
+                          multiple: false,
+                          filter: { variants: true }
+                        });
+                        
+                        if (selected && selected.length > 0) {
+                          const product = selected[0];
+                          const variant = product.variants[0];
+                          
+                          setFormConfig(prev => ({
+                            ...prev,
+                            targetProductId: product.id,
+                            targetVariantId: variant.id,
+                            targetInventory: variant.inventoryQuantity
+                          }));
+                          
+                          setSelectedProductInfo({
+                            productTitle: product.title,
+                            variantTitle: variant.title,
+                            price: variant.price,
+                            imageUrl: (product.images && product.images[0]?.originalSrc) || null,
+                            inventoryQuantity: variant.inventoryQuantity,
+                            inventoryTracked: true
+                          });
+                          
+                          shopify.toast.show(`Linked: ${product.title} — ${variant.title}`);
+                        }
+                      } catch(e) {
+                        console.error("Resource picker cancelled or failed:", e);
+                      }
+                    }}
+                  >
+                    🎯 Select Product
+                  </button>
+
+                  {formConfig.targetVariantId && (
+                    <button 
+                      type="button" 
+                      className="mn-action-btn"
+                      style={{ background: "transparent", color: "#ef4444", border: "1px solid rgba(239,68,68,0.4)", padding: "10px 16px", fontSize: "12px", borderRadius: "8px" }}
+                      onClick={() => {
+                        setFormConfig(prev => ({ ...prev, targetProductId: "", targetVariantId: "" }));
+                        setSelectedProductInfo(null);
+                      }}
+                    >
+                      ✕ Remove Link
+                    </button>
+                  )}
+                </div>
+
+                {/* Selected Product Info Card */}
+                {(selectedProductInfo || formConfig.targetVariantId) && (
+                  <div style={{ 
+                    marginTop: "16px", 
+                    background: "rgba(0,0,0,0.2)", 
+                    border: "1px solid var(--border-color)", 
+                    borderRadius: "10px", 
+                    padding: "16px",
+                    display: "flex",
+                    gap: "16px",
+                    alignItems: "center"
+                  }}>
+                    {/* Product Image */}
+                    <div style={{
+                      width: "64px",
+                      height: "64px",
+                      borderRadius: "8px",
+                      overflow: "hidden",
+                      background: "rgba(255,255,255,0.05)",
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}>
+                      {selectedProductInfo?.imageUrl ? (
+                        <img src={selectedProductInfo.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <span style={{ fontSize: "28px" }}>📦</span>
+                      )}
+                    </div>
+
+                    {/* Product Details */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: "700", fontSize: "14px", color: "var(--text-primary)", marginBottom: "4px" }}>
+                        {selectedProductInfo?.productTitle || "Product"}
+                      </div>
+                      <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "8px" }}>
+                        Variant: {selectedProductInfo?.variantTitle || "Default"}
+                        {selectedProductInfo?.price && ` · $${selectedProductInfo.price}`}
+                      </div>
+                      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                        {/* Inventory Badge */}
+                        <div style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "4px 10px",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          background: selectedProductInfo?.inventoryTracked === false 
+                            ? "rgba(245,158,11,0.15)" 
+                            : selectedProductInfo?.inventoryQuantity !== null && selectedProductInfo?.inventoryQuantity !== undefined
+                              ? selectedProductInfo.inventoryQuantity > 10 
+                                ? "rgba(16,185,129,0.15)" 
+                                : selectedProductInfo.inventoryQuantity > 0 
+                                  ? "rgba(245,158,11,0.15)" 
+                                  : "rgba(239,68,68,0.15)"
+                              : "rgba(99,102,241,0.15)",
+                          color: selectedProductInfo?.inventoryTracked === false
+                            ? "#f59e0b"
+                            : selectedProductInfo?.inventoryQuantity !== null && selectedProductInfo?.inventoryQuantity !== undefined
+                              ? selectedProductInfo.inventoryQuantity > 10 
+                                ? "#10b981" 
+                                : selectedProductInfo.inventoryQuantity > 0 
+                                  ? "#f59e0b" 
+                                  : "#ef4444"
+                              : "#6366f1"
+                        }}>
+                          {selectedProductInfo?.inventoryTracked === false 
+                            ? "⚠️ Tracking Disabled"
+                            : selectedProductInfo?.inventoryQuantity !== null && selectedProductInfo?.inventoryQuantity !== undefined
+                              ? `📊 Inventory: ${selectedProductInfo.inventoryQuantity}`
+                              : variantInfoFetcher.state === "loading" 
+                                ? "⏳ Loading..."
+                                : "📊 Fetching inventory..."
+                          }
+                        </div>
+
+                        {/* Discount Badge */}
+                        {selectedProductInfo?.compareAtPrice && selectedProductInfo?.price && 
+                          parseFloat(selectedProductInfo.compareAtPrice) > parseFloat(selectedProductInfo.price) && (
+                          <div style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            padding: "4px 10px",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: "600",
+                            background: "rgba(168,85,247,0.15)",
+                            color: "#a855f7"
+                          }}>
+                            🏷️ {Math.round(((parseFloat(selectedProductInfo.compareAtPrice) - parseFloat(selectedProductInfo.price)) / parseFloat(selectedProductInfo.compareAtPrice)) * 100)}% OFF
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!formConfig.targetVariantId && (
+                  <div style={{ 
+                    marginTop: "12px", 
+                    padding: "16px", 
+                    border: "1px dashed rgba(99,102,241,0.3)", 
+                    borderRadius: "10px", 
+                    textAlign: "center", 
+                    color: "var(--text-secondary)", 
+                    fontSize: "13px" 
+                  }}>
+                    No product linked. Campaign will show on all pages without inventory data.
+                  </div>
+                )}
               </div>
 
               <hr style={{ borderColor: "var(--border-color)", margin: "24px 0" }} />
@@ -765,6 +991,10 @@ export default function Index() {
                   </div>
                 </div>
               )}
+
+
+
+              <hr style={{ borderColor: "var(--border-color)", margin: "24px 0" }} />
 
               {/* Theme custom colors */}
               <div className="mn-form-group">
@@ -1221,3 +1451,4 @@ export default function Index() {
     </div>
   );
 }
+// HMR trigger 20260608112828

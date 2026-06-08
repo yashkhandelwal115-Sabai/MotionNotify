@@ -5,18 +5,23 @@ import { getShopSettings, isDesignUnlocked } from "../services/billing.server";
 
 // Loader: Fetch all configurations and current plan settings for the shop
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
-  const shop = session.shop;
+  try {
+    const { session } = await authenticate.admin(request);
+    const shop = session.shop;
 
-  const [configs, settings] = await Promise.all([
-    db.announcementConfig.findMany({
-      where: { shop },
-      orderBy: { updatedAt: "desc" },
-    }),
-    getShopSettings(shop),
-  ]);
+    const [configs, settings] = await Promise.all([
+      db.announcementConfig.findMany({
+        where: { shop },
+        orderBy: { updatedAt: "desc" },
+      }),
+      getShopSettings(shop),
+    ]);
 
-  return Response.json({ configs, settings });
+    return Response.json({ configs, settings });
+  } catch (error) {
+    console.error("[API][Announcements] Loader Error:", error);
+    return Response.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
+  }
 };
 
 // Action: Create, Update, Delete, or Toggle configurations
@@ -123,107 +128,114 @@ export const action = async ({ request }) => {
   }
 
   // Save / Update config
-  const payload = await request.json();
-  const {
-    id,
-    name,
-    designType,
-    isActive,
-    text,
-    heading,
-    subheading,
-    fontColor,
-    bgColor,
-    gradientColor1,
-    gradientColor2,
-    buttonText,
-    buttonUrl,
-    buttonStyle,
-    countdownDate,
-    cards,
-    borderRadius,
-    animationEnabled,
-    mobileVisible,
-    desktopVisible,
-    rotationTiming,
-    badgeLabel,
-    icon,
-    scheduledStart,
-    scheduledEnd,
-    targetCountries,
-    priority,
-  } = payload;
+  try {
+    const payload = await request.json();
+    const {
+      id,
+      name,
+      designType,
+      isActive,
+      text,
+      heading,
+      subheading,
+      fontColor,
+      bgColor,
+      gradientColor1,
+      gradientColor2,
+      buttonText,
+      buttonUrl,
+      buttonStyle,
+      countdownDate,
+      cards,
+      borderRadius,
+      animationEnabled,
+      mobileVisible,
+      desktopVisible,
+      rotationTiming,
+      badgeLabel,
+      icon,
+      scheduledStart,
+      scheduledEnd,
+      targetCountries,
+      priority,
+    } = payload;
 
-  // Enforce Plan Limits
-  const shopSettings = await getShopSettings(shop);
-  const activePlan = shopSettings.plan;
+    // Enforce Plan Limits
+    const shopSettings = await getShopSettings(shop);
+    const activePlan = shopSettings.plan;
 
-  if (!isDesignUnlocked(activePlan, designType)) {
-    return Response.json(
-      {
-        error: `Design '${designType}' is locked on your current plan (${activePlan}). Please upgrade to unlock it.`,
-      },
-      { status: 403 }
-    );
+    if (!isDesignUnlocked(activePlan, designType)) {
+      return Response.json(
+        {
+          error: `Design '${designType}' is locked on your current plan (${activePlan}). Please upgrade to unlock it.`,
+        },
+        { status: 403 }
+      );
+    }
+
+    // Single-active enforcement: if saving with isActive=true, pause all others
+    if (isActive && id) {
+      await db.announcementConfig.updateMany({
+        where: {
+          shop,
+          id: { not: id },
+          isActive: true,
+        },
+        data: { isActive: false },
+      });
+      console.log(`[API][Save] Single-active enforcement: paused other campaigns for shop: ${shop}`);
+    }
+
+    const configData = {
+      shop,
+      name: name || "Announcement Campaign",
+      designType: designType || "FREE",
+      isActive: isActive !== undefined ? isActive : false,
+      text: text || "",
+      heading: heading || "",
+      subheading: subheading || "",
+      fontColor: fontColor || "#FFFFFF",
+      bgColor: bgColor || "#000000",
+      gradientColor1: gradientColor1 || "#ff7e5f",
+      gradientColor2: gradientColor2 || "#feb47b",
+      buttonText: buttonText || "",
+      buttonUrl: buttonUrl || "",
+      buttonStyle: buttonStyle || "solid",
+      countdownDate: countdownDate || "",
+      cards: typeof cards === "string" ? cards : JSON.stringify(cards || []),
+      borderRadius: borderRadius !== undefined ? Number(borderRadius) : 8,
+      animationEnabled: animationEnabled !== undefined ? animationEnabled : true,
+      mobileVisible: mobileVisible !== undefined ? mobileVisible : true,
+      desktopVisible: desktopVisible !== undefined ? desktopVisible : true,
+      rotationTiming: rotationTiming !== undefined ? Number(rotationTiming) : 5,
+      badgeLabel: badgeLabel || "",
+      icon: icon || "",
+      scheduledStart: scheduledStart || "",
+      scheduledEnd: scheduledEnd || "",
+      targetCountries: targetCountries || "",
+      priority: priority !== undefined ? Number(priority) : 0,
+      targetProductId: payload.targetProductId || "",
+      targetVariantId: payload.targetVariantId || "",
+    };
+
+    let savedConfig;
+    if (id) {
+      // Update
+      savedConfig = await db.announcementConfig.update({
+        where: { id, shop },
+        data: configData,
+      });
+    } else {
+      // Create new
+      savedConfig = await db.announcementConfig.create({
+        data: configData,
+      });
+    }
+
+    console.log(`[API][Save] Campaign saved: ${savedConfig.id} (${savedConfig.name}), isActive: ${savedConfig.isActive}, shop: ${shop}`);
+    return Response.json({ success: true, config: savedConfig });
+  } catch (error) {
+    console.error("[API][Save] Error saving campaign:", error);
+    return Response.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
   }
-
-  // Single-active enforcement: if saving with isActive=true, pause all others
-  if (isActive && id) {
-    await db.announcementConfig.updateMany({
-      where: {
-        shop,
-        id: { not: id },
-        isActive: true,
-      },
-      data: { isActive: false },
-    });
-    console.log(`[API][Save] Single-active enforcement: paused other campaigns for shop: ${shop}`);
-  }
-
-  const configData = {
-    shop,
-    name: name || "Announcement Campaign",
-    designType: designType || "FREE",
-    isActive: isActive !== undefined ? isActive : false,
-    text: text || "",
-    heading: heading || "",
-    subheading: subheading || "",
-    fontColor: fontColor || "#FFFFFF",
-    bgColor: bgColor || "#000000",
-    gradientColor1: gradientColor1 || "#ff7e5f",
-    gradientColor2: gradientColor2 || "#feb47b",
-    buttonText: buttonText || "",
-    buttonUrl: buttonUrl || "",
-    buttonStyle: buttonStyle || "solid",
-    countdownDate: countdownDate || "",
-    cards: typeof cards === "string" ? cards : JSON.stringify(cards || []),
-    borderRadius: borderRadius !== undefined ? Number(borderRadius) : 8,
-    animationEnabled: animationEnabled !== undefined ? animationEnabled : true,
-    mobileVisible: mobileVisible !== undefined ? mobileVisible : true,
-    desktopVisible: desktopVisible !== undefined ? desktopVisible : true,
-    rotationTiming: rotationTiming !== undefined ? Number(rotationTiming) : 5,
-    badgeLabel: badgeLabel || "",
-    icon: icon || "",
-    scheduledStart: scheduledStart || "",
-    scheduledEnd: scheduledEnd || "",
-    targetCountries: targetCountries || "",
-    priority: priority !== undefined ? Number(priority) : 0,
-  };
-
-  let savedConfig;
-  if (id) {
-    // Update
-    savedConfig = await db.announcementConfig.update({
-      where: { id, shop },
-      data: configData,
-    });
-  } else {
-    // Create new
-    savedConfig = await db.announcementConfig.create({
-      data: configData,
-    });
-  }
-
-  console.log(`[API][Save] Campaign saved: ${savedConfig.id} (${savedConfig.name}), isActive: ${savedConfig.isActive}, shop: ${shop}`);
-  return Response.json({ success: true, config: savedConfig });
 };

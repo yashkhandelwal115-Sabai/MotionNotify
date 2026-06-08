@@ -2,11 +2,16 @@
   id="motionnotify-root" 
   data-shop="{{ shop.permanent_domain }}" 
   data-country="{{ localization.country.iso_code }}"
+  data-product-id="{{ product.id }}"
+  data-variant-id="{{ product.selected_or_first_available_variant.id }}"
+  data-product-inventory="{{ product.selected_or_first_available_variant.inventory_quantity }}"
+  data-product-price="{{ product.selected_or_first_available_variant.price }}"
+  data-product-compare-price="{{ product.selected_or_first_available_variant.compare_at_price }}"
 >
   <!-- Rendered dynamically by assets/motionnotify.js to maximize storefront speed and render remote active configurations -->
 </div>
 
-<script src="{{ 'motionnotify.js' | asset_url }}" defer></script>
+<script id="motionnotify-script" src="{{ 'motionnotify.js' | asset_url }}" defer></script>
 <link rel="stylesheet" href="{{ 'motionnotify.css' | asset_url }}">
 
 {% schema %}

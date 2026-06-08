@@ -77,8 +77,14 @@ export default function AnnouncementRenderer({ config }) {
   const simulatedMsgs = [
     `🔥 34 visitors from New York purchased in the last hour!`,
     `⚡ High demand: Free shipping unlocked for your order!`,
-    `🛍️ 12 items left in stock — cart holding active.`,
+    `🛍️ {inventory} items left in stock — cart holding active.`,
   ];
+
+  const processText = (str) => {
+    if (!str) return str;
+    const inv = config?.targetInventory != null ? config.targetInventory : 29616;
+    return str.replace(/{inventory}/g, inv.toLocaleString());
+  };
 
   useEffect(() => {
     if (designType === "DYNAMIC") {
@@ -475,7 +481,7 @@ export default function AnnouncementRenderer({ config }) {
           {designType === "DYNAMIC" && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: "16px" }}>
               <div className="mn-text-content mn-dynamic-ticker" key={simulatedMsgIndex}>
-                <span>{simulatedMsgs[simulatedMsgIndex]}</span>
+                <span>{processText(simulatedMsgs[simulatedMsgIndex])}</span>
               </div>
               {countdownDate && !countdownFinished && (
                 <div className="mn-countdown-wrapper" style={{ opacity: 0.9 }}>

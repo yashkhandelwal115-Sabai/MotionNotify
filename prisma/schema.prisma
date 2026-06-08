@@ -69,6 +69,8 @@ model AnnouncementConfig {
   scheduledEnd     String    @default("")
   targetCountries  String    @default("") // comma-separated country codes
   priority         Int       @default(0)
+  targetProductId  String    @default("")
+  targetVariantId  String    @default("")
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 }

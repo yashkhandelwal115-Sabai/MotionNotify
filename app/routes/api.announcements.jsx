@@ -1,78 +1,140 @@
 // Removed json import
 import db from "../db.server";
 
+const inventoryCache = new Map();
+
 export const loader = async ({ request }) => {
-  const url = new URL(request.url);
-  const shop = url.searchParams.get("shop");
-  const country = url.searchParams.get("country")?.toUpperCase() || "";
-  const device = url.searchParams.get("device") || "desktop";
+  try {
+    const url = new URL(request.url);
+    const shop = url.searchParams.get("shop");
+    const country = url.searchParams.get("country")?.toUpperCase() || "";
+    const device = url.searchParams.get("device") || "desktop";
 
-  if (!shop) {
-    console.error("[Storefront] Missing shop parameter in API request");
-    return Response.json({ error: "Missing shop parameter" }, { 
-      status: 400,
-      headers: { "Access-Control-Allow-Origin": "*" } 
+    if (!shop) {
+      console.error("[Storefront] Missing shop parameter in API request");
+      return Response.json({ error: "Missing shop parameter" }, { 
+        status: 400,
+        headers: { "Access-Control-Allow-Origin": "*" } 
+      });
+    }
+
+    console.log(`[Storefront] Fetching active campaigns for: ${shop} (device: ${device}, country: ${country || 'N/A'})`);
+
+    // Fetch all active configurations for this shop
+    const activeConfigs = await db.announcementConfig.findMany({
+      where: {
+        shop,
+        isActive: true,
+      },
+      orderBy: [
+        { priority: "desc" },
+        { updatedAt: "desc" }
+      ],
     });
-  }
 
-  console.log(`[Storefront] Fetching active campaigns for: ${shop} (device: ${device}, country: ${country || 'N/A'})`);
+    const now = new Date();
 
-  // Fetch all active configurations for this shop
-  const activeConfigs = await db.announcementConfig.findMany({
-    where: {
-      shop,
-      isActive: true,
-    },
-    orderBy: [
-      { priority: "desc" },
-      { updatedAt: "desc" }
-    ],
-  });
+    // Filter based on scheduling, device visibility, and country targeting
+    const qualifiedConfigs = activeConfigs.filter((config) => {
+      // 1. Device filter
+      if (device === "mobile" && !config.mobileVisible) return false;
+      if (device === "desktop" && !config.desktopVisible) return false;
 
-  const now = new Date();
+      // 2. Scheduling filter
+      if (config.scheduledStart) {
+        const startDate = new Date(config.scheduledStart);
+        if (isNaN(startDate.getTime()) || startDate > now) return false;
+      }
+      if (config.scheduledEnd) {
+        const endDate = new Date(config.scheduledEnd);
+        if (isNaN(endDate.getTime()) || endDate < now) return false;
+      }
 
-  // Filter based on scheduling, device visibility, and country targeting
-  const qualifiedConfigs = activeConfigs.filter((config) => {
-    // 1. Device filter
-    if (device === "mobile" && !config.mobileVisible) return false;
-    if (device === "desktop" && !config.desktopVisible) return false;
+      // 3. Country targeting
+      if (config.targetCountries) {
+        const allowedCountries = config.targetCountries
+          .split(",")
+          .map((c) => c.trim().toUpperCase());
+        if (allowedCountries.length > 0 && country && !allowedCountries.includes(country)) {
+          return false;
+        }
+      }
 
-    // 2. Scheduling filter
-    if (config.scheduledStart) {
-      const startDate = new Date(config.scheduledStart);
-      if (isNaN(startDate.getTime()) || startDate > now) return false;
-    }
-    if (config.scheduledEnd) {
-      const endDate = new Date(config.scheduledEnd);
-      if (isNaN(endDate.getTime()) || endDate < now) return false;
-    }
+      return true;
+    });
 
-    // 3. Country targeting
-    if (config.targetCountries) {
-      const allowedCountries = config.targetCountries
-        .split(",")
-        .map((c) => c.trim().toUpperCase());
-      if (allowedCountries.length > 0 && country && !allowedCountries.includes(country)) {
-        return false;
+    // Return the highest-priority qualifying configuration
+    const activeCampaign = qualifiedConfigs[0] || null;
+
+    if (activeCampaign && activeCampaign.targetVariantId) {
+      try {
+        const cacheKey = `${shop}_${activeCampaign.targetVariantId}`;
+        const nowMs = Date.now();
+        const cached = inventoryCache.get(cacheKey);
+
+        if (cached && nowMs - cached.timestamp < 60000) {
+          // Use cached data
+          Object.assign(activeCampaign, cached.data);
+        } else {
+          // Fetch fresh data
+          const { unauthenticated } = await import("../shopify.server");
+          const { admin } = await unauthenticated.admin(shop);
+          
+          const response = await admin.graphql(
+            `#graphql
+            query getVariantData($id: ID!) {
+              node(id: $id) {
+                ... on ProductVariant {
+                  inventoryQuantity
+                  inventoryManagement
+                  price
+                  compareAtPrice
+                }
+              }
+            }`,
+            { variables: { id: activeCampaign.targetVariantId } }
+          );
+
+          const responseJson = await response.json();
+          const variantNode = responseJson.data?.node;
+
+          if (variantNode) {
+            const fetchedData = {
+              targetInventory: variantNode.inventoryManagement ? variantNode.inventoryQuantity : null,
+              targetPrice: variantNode.price,
+              targetCompareAtPrice: variantNode.compareAtPrice || null
+            };
+            
+            inventoryCache.set(cacheKey, { data: fetchedData, timestamp: nowMs });
+            Object.assign(activeCampaign, fetchedData);
+          } else {
+            // Variant not found or deleted
+            Object.assign(activeCampaign, { isTargetDeleted: true });
+          }
+        }
+      } catch (err) {
+        console.error("[Storefront] Error fetching live variant data via Admin API:", err);
+        // Suppress error and let the campaign render with fallback
       }
     }
 
-    return true;
-  });
-
-  // Return the highest-priority qualifying configuration
-  const activeCampaign = qualifiedConfigs[0] || null;
-
-  return Response.json(
-    { campaign: activeCampaign },
-    {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Cache-Control": "public, max-age=15",
-      },
-    }
-  );
+    return Response.json(
+      { campaign: activeCampaign },
+      {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Cache-Control": "public, max-age=15",
+        },
+      }
+    );
+  } catch (error) {
+    console.error("[Storefront] Error fetching active campaigns:", error);
+    return Response.json({ error: "Internal Server Error", details: error.message }, { 
+      status: 500,
+      headers: { "Access-Control-Allow-Origin": "*" } 
+    });
+  }
 };
 
 export const action = async () => {

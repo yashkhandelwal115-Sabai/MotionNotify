@@ -6,11 +6,20 @@
   const country = root.getAttribute("data-country") || "";
   const device = window.innerWidth <= 768 ? "mobile" : "desktop";
 
-  // Use Shopify App Proxy to route traffic to the app backend safely without CORS
-  const appProxyUrl = "/apps/motionnotify";
+  const scriptTag = document.getElementById("motionnotify-script");
+  let appProxyUrl = "/apps/motionnotify";
+  
+  if (scriptTag && scriptTag.src) {
+    try {
+      const scriptUrl = new URL(scriptTag.src);
+      if (!scriptUrl.hostname.includes("cdn.shopify.com") && !scriptUrl.hostname.includes("cdn.shopifycloud.com")) {
+        appProxyUrl = scriptUrl.origin;
+      }
+    } catch(e) {}
+  }
   
   console.log(`[MotionNotify] Initializing storefront script for shop: ${shop}`);
-  console.log(`[MotionNotify] Fetching campaigns via App Proxy...`);
+  console.log(`[MotionNotify] Fetching campaigns from: ${appProxyUrl}`);
 
   // Fetch campaign
   fetch(`${appProxyUrl}/api/announcements?shop=${shop}&country=${country}&device=${device}`)
@@ -19,21 +28,104 @@
       return res.json();
     })
     .then((data) => {
-      const campaign = data.campaign;
-      if (!campaign) {
+      activeCampaign = data.campaign;
+      if (!activeCampaign) {
         root.style.display = "none";
         return;
       }
 
-      renderCampaign(campaign);
-      trackEvent("IMPRESSION", campaign.id);
+      renderCampaign(activeCampaign);
+      trackEvent("IMPRESSION", activeCampaign.id);
     })
     .catch((err) => {
       console.error("Error loading MotionNotify:", err);
       root.style.display = "none";
     });
 
+  let activeCampaign = null;
+
+  let productId = root.getAttribute("data-product-id") || "N/A";
+  let variantId = root.getAttribute("data-variant-id") || "N/A";
+  let inventory = null;
+  let discountPct = "0%";
+
+  function updateDataFromElement(el) {
+    if (!el) return;
+    productId = el.getAttribute("data-product-id") || "N/A";
+    variantId = el.getAttribute("data-variant-id") || "N/A";
+    
+    const inventoryRaw = el.getAttribute("data-product-inventory");
+    inventory = inventoryRaw && inventoryRaw !== "" ? parseInt(inventoryRaw, 10) : null;
+    
+    const priceRaw = el.getAttribute("data-product-price") || "";
+    const price = priceRaw ? (parseInt(priceRaw, 10) / 100) : 0;
+    const comparePriceRaw = el.getAttribute("data-product-compare-price") || "";
+    const comparePrice = comparePriceRaw ? (parseInt(comparePriceRaw, 10) / 100) : 0;
+    
+    discountPct = "0%";
+    if (comparePrice > price && price > 0) {
+      discountPct = `${Math.round(((comparePrice - price) / comparePrice) * 100)}%`;
+    }
+  }
+
+  // Initial load
+  updateDataFromElement(root);
+  
+  console.log(`[MotionNotify] Product ID: ${productId}`);
+  console.log(`[MotionNotify] Variant ID: ${variantId}`);
+  console.log(`[MotionNotify] Inventory quantity received: ${inventory !== null ? inventory : "Not tracked"}`);
+
+  function processText(str) {
+    if (!str) return str;
+    
+    // Check if the backend provided global target values for this campaign
+    let activeInventory = inventory;
+    let activeDiscountPct = discountPct;
+    
+    if (activeCampaign) {
+      if (activeCampaign.isTargetDeleted) {
+        // Fallback gracefully if target product was deleted
+        if (str.includes("{inventory}") || str.includes("{discount}")) {
+          return "Special Offer Available Now!";
+        }
+      }
+      
+      if (activeCampaign.targetInventory !== undefined) {
+        activeInventory = activeCampaign.targetInventory;
+      }
+      
+      if (activeCampaign.targetPrice !== undefined) {
+        const tPrice = activeCampaign.targetPrice;
+        const tCompare = activeCampaign.targetCompareAtPrice;
+        activeDiscountPct = "0%";
+        if (tCompare > tPrice && tPrice > 0) {
+          activeDiscountPct = `${Math.round(((tCompare - tPrice) / tCompare) * 100)}%`;
+        }
+      }
+    }
+    
+    // Fallback for non-product pages or untracked targets where inventory/price are unavailable
+    if (activeInventory === null) {
+      if (str.includes("{inventory}") || str.includes("{discount}")) {
+        return "Special Offer Available Now!";
+      }
+      return str;
+    }
+
+    let invText = activeInventory.toLocaleString();
+    if (activeInventory === 0) {
+      // If inventory is exactly 0, replace entire string with "Out of Stock" if it contains {inventory}
+      if (str.includes("{inventory}")) {
+        return "Out of Stock";
+      }
+    }
+    return str.replace(/{inventory}/g, invText).replace(/{discount}/g, activeDiscountPct);
+  }
+
   function renderCampaign(cfg) {
+    if (!root) return;
+    root.innerHTML = "";
+    
     const container = document.createElement("div");
     container.className = `motionnotify-container mn-design-${cfg.designType.toLowerCase()}`;
     
@@ -59,7 +151,7 @@
       badge.className = "mn-badge";
       badge.style.color = cfg.fontColor;
       badge.style.borderColor = cfg.fontColor;
-      badge.innerText = cfg.badgeLabel;
+      badge.innerText = processText(cfg.badgeLabel);
       inner.appendChild(badge);
     }
 
@@ -95,9 +187,9 @@
           cardEl.className = `mn-sliding-card ${idx === 0 ? "active" : ""}`;
           cardEl.innerHTML = `
             <div class="mn-text-content">
-              ${card.heading ? `<span class="mn-heading">${card.heading}</span>` : ""}
-              <span>${card.text}</span>
-              ${card.subheading ? `<span class="mn-subheading">${card.subheading}</span>` : ""}
+              ${card.heading ? `<span class="mn-heading">${processText(card.heading)}</span>` : ""}
+              <span>${processText(card.text)}</span>
+              ${card.subheading ? `<span class="mn-subheading">${processText(card.subheading)}</span>` : ""}
             </div>
           `;
           slidingContainer.appendChild(cardEl);
@@ -114,7 +206,7 @@
           }, cfg.rotationTiming * 1000);
         }
       } else {
-        slidingContainer.innerHTML = `<span class="mn-text-content">${cfg.text}</span>`;
+        slidingContainer.innerHTML = `<span class="mn-text-content">${processText(cfg.text)}</span>`;
       }
       inner.appendChild(slidingContainer);
 
@@ -131,9 +223,9 @@
           cardEl.className = `mn-carousel-card ${idx === 0 ? "active" : ""}`;
           cardEl.innerHTML = `
             <div class="mn-text-content">
-              ${card.heading ? `<span class="mn-heading">${card.heading}</span>` : ""}
-              <span>${card.text}</span>
-              ${card.subheading ? `<span class="mn-subheading">${card.subheading}</span>` : ""}
+              ${card.heading ? `<span class="mn-heading">${processText(card.heading)}</span>` : ""}
+              <span>${processText(card.text)}</span>
+              ${card.subheading ? `<span class="mn-subheading">${processText(card.subheading)}</span>` : ""}
             </div>
           `;
           carouselInner.appendChild(cardEl);
@@ -152,7 +244,7 @@
           }, cfg.rotationTiming * 1000);
         }
       } else {
-        carouselInner.innerHTML = `<span class="mn-text-content">${cfg.text}</span>`;
+        carouselInner.innerHTML = `<span class="mn-text-content">${processText(cfg.text)}</span>`;
         carouselWrapper.appendChild(carouselInner);
       }
       inner.appendChild(carouselWrapper);
@@ -171,10 +263,10 @@
       const simulatedMsgs = [
         `🔥 34 visitors from New York purchased in the last hour!`,
         `⚡ High demand: Free shipping unlocked for your order!`,
-        `🛍️ 12 items left in stock — cart holding active.`
+        `🛍️ {inventory} items left in stock — cart holding active.`
       ];
 
-      ticker.innerText = simulatedMsgs[0];
+      ticker.innerText = processText(simulatedMsgs[0]);
       dynamicWrapper.appendChild(ticker);
 
       let msgIndex = 0;
@@ -182,7 +274,7 @@
         msgIndex = (msgIndex + 1) % simulatedMsgs.length;
         ticker.style.opacity = 0;
         setTimeout(() => {
-          ticker.innerText = simulatedMsgs[msgIndex];
+          ticker.innerText = processText(simulatedMsgs[msgIndex]);
           ticker.style.opacity = 1;
         }, 200);
       }, 6000);
@@ -207,8 +299,8 @@
       interactiveWrapper.style.gap = "16px";
 
       contentWrapper.innerHTML = `
-        ${cfg.heading ? `<span class="mn-heading">${cfg.heading}</span>` : ""}
-        <span>${cfg.text}</span>
+        ${cfg.heading ? `<span class="mn-heading">${processText(cfg.heading)}</span>` : ""}
+        <span>${processText(cfg.text)}</span>
       `;
       interactiveWrapper.appendChild(contentWrapper);
 
@@ -224,9 +316,9 @@
     } else {
       // Standard static content designs (FREE, GRADIENT, GLASSMORPHISM, LUXURY)
       contentWrapper.innerHTML = `
-        ${cfg.heading ? `<span class="mn-heading">${cfg.heading}</span>` : ""}
-        <span>${cfg.text}</span>
-        ${cfg.subheading ? `<span class="mn-subheading">${cfg.subheading}</span>` : ""}
+        ${cfg.heading ? `<span class="mn-heading">${processText(cfg.heading)}</span>` : ""}
+        <span>${processText(cfg.text)}</span>
+        ${cfg.subheading ? `<span class="mn-subheading">${processText(cfg.subheading)}</span>` : ""}
       `;
       inner.appendChild(contentWrapper);
     }
@@ -236,7 +328,7 @@
       const btn = document.createElement("a");
       btn.href = cfg.buttonUrl;
       btn.className = `mn-cta-btn mn-btn-${cfg.buttonStyle}`;
-      btn.innerText = cfg.buttonText;
+      btn.innerText = processText(cfg.buttonText);
       btn.style.color = cfg.buttonStyle === "solid" ? cfg.bgColor : cfg.fontColor;
       btn.style.backgroundColor = cfg.buttonStyle === "solid" ? cfg.fontColor : "transparent";
       btn.style.borderColor = cfg.fontColor;
@@ -315,4 +407,48 @@
       JSON.stringify(payload)
     );
   }
+
+  // Handle Shopify Variant Switching without page reload
+  let lastUrl = window.location.href;
+  
+  function handleVariantChange() {
+    const currentUrl = window.location.href;
+    if (currentUrl === lastUrl) return;
+    lastUrl = currentUrl;
+    
+    if (currentUrl.includes("variant=") && activeCampaign && root) {
+      console.log("[MotionNotify] Variant change detected. Fetching new variant data...");
+      
+      fetch(currentUrl)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+          const newRoot = doc.getElementById("motionnotify-root");
+          
+          if (newRoot) {
+            updateDataFromElement(newRoot);
+            console.log(`[MotionNotify] Variant updated. New inventory: ${inventory}, Price: ${discountPct}`);
+            renderCampaign(activeCampaign);
+          }
+        })
+        .catch(err => console.error("[MotionNotify] Error updating variant data:", err));
+    }
+  }
+
+  // Intercept History API
+  const originalPushState = history.pushState;
+  history.pushState = function() {
+    originalPushState.apply(this, arguments);
+    handleVariantChange();
+  };
+
+  const originalReplaceState = history.replaceState;
+  history.replaceState = function() {
+    originalReplaceState.apply(this, arguments);
+    handleVariantChange();
+  };
+
+  window.addEventListener("popstate", handleVariantChange);
+
 })();
