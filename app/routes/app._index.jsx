@@ -252,6 +252,7 @@ export default function Index() {
         targetInventory: variantInfoFetcher.data.inventoryQuantity
       }));
     } else if (variantInfoFetcher.data?.error) {
+      shopify.toast.show(`Error: ${variantInfoFetcher.data.details || variantInfoFetcher.data.error}`);
       setSelectedProductInfo(null);
     }
   }, [variantInfoFetcher.data]);

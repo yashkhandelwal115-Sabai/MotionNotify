@@ -17,7 +17,6 @@ export const loader = async ({ request }) => {
           ... on ProductVariant {
             id
             title
-            displayName
             price
             compareAtPrice
             inventoryItem {
@@ -36,12 +35,8 @@ export const loader = async ({ request }) => {
             product {
               id
               title
-              featuredMedia {
-                preview {
-                  image {
-                    url
-                  }
-                }
+              featuredImage {
+                url
               }
             }
           }
@@ -70,17 +65,16 @@ export const loader = async ({ request }) => {
     return Response.json({
       variantId: node.id,
       variantTitle: node.title,
-      displayName: node.displayName,
       price: node.price,
       compareAtPrice: node.compareAtPrice,
       inventoryQuantity: node.inventoryItem?.tracked ? totalInventory : null,
       inventoryTracked: !!node.inventoryItem?.tracked,
-      imageUrl: node.image?.url || node.product?.featuredMedia?.preview?.image?.url || null,
+      imageUrl: node.image?.url || node.product?.featuredImage?.url || null,
       productId: node.product?.id,
       productTitle: node.product?.title,
     });
   } catch (err) {
     console.error("[API] Error fetching variant info:", err);
-    return Response.json({ error: "Failed to fetch variant info" }, { status: 500 });
+    return Response.json({ error: "Failed to fetch variant info", details: err.message || String(err) }, { status: 500 });
   }
 };
