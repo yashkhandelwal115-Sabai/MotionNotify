@@ -12,5 +12,16 @@ export const action = async ({ request }) => {
     await db.session.deleteMany({ where: { shop } });
   }
 
+  // Reset merchant plan to FREE and clear active subscription state
+  await db.shopSettings.updateMany({
+    where: { shop },
+    data: {
+      plan: "FREE",
+      status: "INACTIVE"
+    }
+  });
+
+  console.log(`Successfully reset plan to FREE and cleared subscription state for uninstalled shop: ${shop}`);
+
   return new Response();
 };
