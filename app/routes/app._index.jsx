@@ -186,7 +186,7 @@ export default function Index() {
     name: "New Campaign",
     designType: "FREE",
     isActive: false,
-    text: "🎉 Free Worldwide Shipping On Orders Over $75! 🎉",
+    text: "🎉 Summer Sale Now Live! 🎉",
     heading: "",
     subheading: "",
     fontColor: "#FFFFFF",
@@ -272,11 +272,20 @@ export default function Index() {
     }));
   };
 
+  const hasRestrictedWords = (text) => {
+    if (!text) return false;
+    const restrictedRegex = /free shipping|visitors|purchased|viewing now|only.*left/i;
+    return restrictedRegex.test(text);
+  };
+
+  const showFactualWarning = hasRestrictedWords(formConfig.text) || 
+    (formConfig.cards && formConfig.cards.some(c => hasRestrictedWords(c.text) || hasRestrictedWords(c.heading) || hasRestrictedWords(c.subheading)));
+
   // Card Management
   const addEditorCard = () => {
     setEditorCards((prev) => [
       ...prev,
-      { heading: "HOT OFFER", text: "Get 20% off accessories using code OFF20", subheading: "T&C Apply" }
+      { heading: "HOT OFFER", text: "Limited Time Offer", subheading: "T&C Apply" }
     ]);
   };
 
@@ -670,7 +679,7 @@ export default function Index() {
                   className="mn-input-text" 
                   value={formConfig.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder="e.g. Black Friday Free Shipping" 
+                  placeholder="e.g. Black Friday Sale" 
                 />
               </div>
 
@@ -902,6 +911,16 @@ export default function Index() {
               </div>
 
               <hr style={{ borderColor: "var(--border-color)", margin: "24px 0" }} />
+
+              <div className="mn-form-group" style={{ marginBottom: "20px", padding: "12px", background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.4)", borderRadius: "8px", color: "var(--text-primary)", fontSize: "13px" }}>
+                <strong>⚠️ Compliance Note:</strong> Only display factual information. Do not use announcements that claim free shipping, discounts, inventory levels, purchases, or visitor counts unless they are backed by actual store data.
+              </div>
+
+              {showFactualWarning && (
+                <div className="mn-form-group" style={{ marginBottom: "20px", padding: "12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px", color: "#ef4444", fontSize: "13px" }}>
+                  This announcement contains factual claims. Ensure the information is accurate and supported by your store data.
+                </div>
+              )}
 
               {/* Text, Heading and Subheading controls */}
               {formConfig.designType !== "SLIDING" && formConfig.designType !== "CAROUSEL" ? (

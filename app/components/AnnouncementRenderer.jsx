@@ -75,9 +75,9 @@ export default function AnnouncementRenderer({ config }) {
   // Dynamic AI-style Banner simulated state
   const [simulatedMsgIndex, setSimulatedMsgIndex] = useState(0);
   const simulatedMsgs = [
-    `🔥 34 visitors from New York purchased in the last hour!`,
-    `⚡ High demand: Free shipping unlocked for your order!`,
-    `🛍️ {inventory} items left in stock — cart holding active.`,
+    `✨ Limited Time Offer!`,
+    `☀️ Summer Sale Now Live`,
+    `🎉 Shop New Arrivals`,
   ];
 
   const processText = (str) => {

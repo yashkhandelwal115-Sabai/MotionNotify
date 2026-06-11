@@ -261,9 +261,9 @@
       ticker.className = "mn-text-content mn-dynamic-ticker";
 
       const simulatedMsgs = [
-        `🔥 34 visitors from New York purchased in the last hour!`,
-        `⚡ High demand: Free shipping unlocked for your order!`,
-        `🛍️ {inventory} items left in stock — cart holding active.`
+        `✨ Limited Time Offer!`,
+        `☀️ Summer Sale Now Live`,
+        `🎉 Shop New Arrivals`
       ];
 
       ticker.innerText = processText(simulatedMsgs[0]);

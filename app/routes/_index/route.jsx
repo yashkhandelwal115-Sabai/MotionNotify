@@ -236,13 +236,13 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Card 2: Free Shipping */}
+              {/* Card 2: Special Offer */}
               <div className={`${styles.previewCard} ${styles.card2}`} style={{"--rot": "1deg"}}>
                 <div className={styles.cardClose}>✕</div>
                 <div className={styles.card2Inner}>
                   <div className={styles.card2Text}>
                     <div className={styles.card2Title}>
-                      Free Shipping on Orders $50+
+                      Special Offer on Orders $50+
                     </div>
                     <div className={styles.card2Sub}>
                       Limited time offer. Don&apos;t miss out!
