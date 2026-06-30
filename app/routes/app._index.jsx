@@ -916,6 +916,11 @@ export default function Index() {
                           }
                         </div>
 
+                        {/* RAW DATA DEBUG INJECTION */}
+                        <div style={{ marginTop: "10px", padding: "10px", background: "#222", color: "#0f0", fontSize: "10px", fontFamily: "monospace", overflowX: "auto", maxWidth: "300px" }}>
+                          Debug: {JSON.stringify(selectedProductInfo)}
+                        </div>
+
                         {/* Discount Badge */}
                         {selectedProductInfo?.compareAtPrice && selectedProductInfo?.price && 
                           parseFloat(selectedProductInfo.compareAtPrice) > parseFloat(selectedProductInfo.price) && (
