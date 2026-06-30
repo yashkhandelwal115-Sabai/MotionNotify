@@ -25,14 +25,14 @@ const ICONS = {
 };
 
 const TEMPLATE_DESIGNS = [
-  { type: "FREE", name: "Classic Clean", tier: "FREE", desc: "Minimalist elegant announcement bar." },
-  { type: "GRADIENT", name: "Gradient Flow", tier: "STARTER", desc: "Background shifting color flows." },
-  { type: "SLIDING", name: "Promo Cards", tier: "STARTER", desc: "Auto-rotating sliding card banners." },
-  { type: "GLASSMORPHISM", name: "Glassmorphism", tier: "GROWTH", desc: "Translucent frosted blur banner." },
-  { type: "CAROUSEL", name: "Stacked Carousel", tier: "GROWTH", desc: "Overlay card stack transitions." },
-  { type: "LUXURY", name: "Luxury Motion", tier: "PREMIUM", desc: "Sleek animated neon border accents." },
-  { type: "INTERACTIVE", name: "Smart Utility", tier: "PREMIUM", desc: "Urgency countdowns and CTA buttons." },
-  { type: "DYNAMIC", name: "AI Dynamic", tier: "PREMIUM", desc: "Live shopper tickers and tags." }
+  { type: "FREE", name: "Classic Clean", tier: "FREE", desc: "Minimalist elegant announcement bar.", thumbIcon: "➖", previewConfig: { designType: "FREE", text: "🛍️ Sale is Live Now", bgColor: "#181922", fontColor: "#ffffff" } },
+  { type: "GRADIENT", name: "Gradient Flow", tier: "STARTER", desc: "Background shifting color flows.", thumbIcon: "🌈", previewConfig: { designType: "GRADIENT", text: "🛍️ Sale is Live Now", gradientColor1: "#6366f1", gradientColor2: "#ec4899", fontColor: "#ffffff" } },
+  { type: "SLIDING", name: "Promo Cards", tier: "STARTER", desc: "Auto-rotating sliding card banners.", thumbIcon: "🔁", previewConfig: { designType: "SLIDING", cards: [{ text: "🛍️ Sale is Live Now" }, { text: "🛍️ Sale is Live Now" }], bgColor: "#181922", fontColor: "#ffffff", rotationTiming: 3 } },
+  { type: "GLASSMORPHISM", name: "Glassmorphism", tier: "GROWTH", desc: "Translucent frosted blur banner.", thumbIcon: "🧊", previewConfig: { designType: "GLASSMORPHISM", text: "🛍️ Sale is Live Now", fontColor: "#ffffff" } },
+  { type: "CAROUSEL", name: "Stacked Carousel", tier: "GROWTH", desc: "Overlay card stack transitions.", thumbIcon: "📚", previewConfig: { designType: "CAROUSEL", cards: [{ text: "🛍️ Sale is Live Now" }, { text: "🛍️ Sale is Live Now" }], bgColor: "#181922", fontColor: "#ffffff" } },
+  { type: "LUXURY", name: "Luxury Motion", tier: "PREMIUM", desc: "Sleek animated neon border accents.", thumbIcon: "✨", previewConfig: { designType: "LUXURY", text: "🛍️ Sale is Live Now", gradientColor1: "#fbbf24", gradientColor2: "#f59e0b", bgColor: "#000", fontColor: "#ffffff" } },
+  { type: "INTERACTIVE", name: "Smart Utility", tier: "PREMIUM", desc: "Urgency countdowns and CTA buttons.", thumbIcon: "⏱️", previewConfig: { designType: "INTERACTIVE", text: "🛍️ Sale is Live Now", buttonText: "Shop Now", gradientColor1: "#ef4444", bgColor: "#181922", fontColor: "#ffffff" } },
+  { type: "DYNAMIC", name: "AI Dynamic", tier: "PREMIUM", desc: "Live shopper tickers and tags.", thumbIcon: "🤖", previewConfig: { designType: "DYNAMIC", text: "🛍️ Sale is Live Now", gradientColor1: "#a855f7", gradientColor2: "#6366f1", bgColor: "#12131a", fontColor: "#ffffff" } }
 ];
 
 export const loader = async ({ request }) => {
@@ -181,19 +181,33 @@ export default function Index() {
   const [currentPlan, setCurrentPlan] = useState(settings.plan || PLANS.FREE);
 
   // Edit / Create Studio State
+  const [previewTemplate, setPreviewTemplate] = useState(null);
+  const [previewViewport, setPreviewViewport] = useState("desktop");
+
+  // Handle ESC key for modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && previewTemplate) {
+        setPreviewTemplate(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previewTemplate]);
+
   const initialFormState = {
     id: "",
     name: "New Campaign",
     designType: "FREE",
     isActive: false,
-    text: "🎉 Summer Sale Now Live! 🎉",
+    text: "🛍️ Sale is Live Now",
     heading: "",
     subheading: "",
     fontColor: "#FFFFFF",
     bgColor: "#090b11",
     gradientColor1: "#6366f1",
     gradientColor2: "#ec4899",
-    buttonText: "Shop Sale",
+    buttonText: "Shop Now",
     buttonUrl: "/collections/all",
     buttonStyle: "solid",
     countdownDate: "",
@@ -203,7 +217,7 @@ export default function Index() {
     mobileVisible: true,
     desktopVisible: true,
     rotationTiming: 4,
-    badgeLabel: "LIMITED TIME",
+    badgeLabel: "",
     icon: "🔥",
     scheduledStart: "",
     scheduledEnd: "",
@@ -285,7 +299,7 @@ export default function Index() {
   const addEditorCard = () => {
     setEditorCards((prev) => [
       ...prev,
-      { heading: "HOT OFFER", text: "Limited Time Offer", subheading: "T&C Apply" }
+      { heading: "", text: "🛍️ Sale is Live Now", subheading: "" }
     ]);
   };
 
@@ -695,13 +709,42 @@ export default function Index() {
                         className={`mn-template-select-card ${formConfig.designType === tmpl.type ? "active" : ""}`}
                         onClick={() => handleInputChange("designType", tmpl.type)}
                       >
-                        <div>
-                          <div className="mn-template-name">
-                            {tmpl.name} {isLocked && <span>{ICONS.lock}</span>}
+                        <div className="mn-template-thumb">
+                           {tmpl.thumbIcon && <div style={{ fontSize: "24px", textAlign: "center", lineHeight: "48px" }}>{tmpl.thumbIcon}</div>}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <div className="mn-template-name">{tmpl.name}</div>
+                            <span className={`mn-template-tier-badge ${tmpl.tier.toLowerCase()}`}>{tmpl.tier}</span>
                           </div>
                           <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "4px" }}>{tmpl.desc}</div>
                         </div>
-                        <span className={`mn-template-tier-badge ${tmpl.tier.toLowerCase()}`}>{tmpl.tier}</span>
+                        <div className="mn-template-actions">
+                          <button 
+                            type="button"
+                            className="mn-btn-preview" 
+                            onClick={(e) => { e.stopPropagation(); setPreviewTemplate(tmpl); }}
+                          >
+                            👁 Preview
+                          </button>
+                          {isLocked ? (
+                            <button 
+                              type="button"
+                              className="mn-btn-upgrade" 
+                              onClick={(e) => { e.stopPropagation(); setActiveTab("billing"); }}
+                            >
+                              🔒 Upgrade
+                            </button>
+                          ) : (
+                            <button 
+                              type="button"
+                              className="mn-btn-use" 
+                              onClick={(e) => { e.stopPropagation(); handleInputChange("designType", tmpl.type); }}
+                            >
+                              Use Template
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -1477,6 +1520,78 @@ export default function Index() {
           </div>
         </div>
       </main>
+
+      {/* Preview Modal Overlay */}
+      {previewTemplate && (
+        <div className="mn-preview-modal-overlay" onClick={() => setPreviewTemplate(null)}>
+          <div className="mn-preview-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="mn-preview-modal-header">
+              <div className="mn-preview-modal-title">
+                {previewTemplate.name}
+                <span className={`mn-template-tier-badge ${previewTemplate.tier.toLowerCase()}`} style={{ margin: 0 }}>
+                  {previewTemplate.tier}
+                </span>
+              </div>
+              <div className="mn-viewport-switchers">
+                <button 
+                  className={`mn-viewport-btn ${previewViewport === "desktop" ? "active" : ""}`}
+                  onClick={() => setPreviewViewport("desktop")}
+                >
+                  {ICONS.desktop} Desktop
+                </button>
+                <button 
+                  className={`mn-viewport-btn ${previewViewport === "mobile" ? "active" : ""}`}
+                  onClick={() => setPreviewViewport("mobile")}
+                >
+                  {ICONS.mobile} Mobile
+                </button>
+              </div>
+            </div>
+
+            <div className="mn-preview-modal-body">
+              {!isDesignUnlocked(currentPlan, previewTemplate.type) && (
+                <div className="mn-preview-locked-badge">
+                  🔒 {previewTemplate.tier === "PREMIUM" ? "Premium" : previewTemplate.tier === "GROWTH" ? "Growth" : "Starter"} Feature
+                </div>
+              )}
+              <div className={`mn-preview-frame-wrapper ${previewViewport === "mobile" ? "mobile-view" : ""}`} style={{ width: "100%", height: "100%", padding: "40px" }}>
+                <AnnouncementRenderer config={previewTemplate.previewConfig} />
+              </div>
+            </div>
+
+            <div className="mn-preview-modal-footer">
+              <button 
+                className="mn-action-btn"
+                style={{ background: "transparent", color: "var(--text-primary)", border: "1px solid var(--border-color)" }}
+                onClick={() => setPreviewTemplate(null)}
+              >
+                Close Preview
+              </button>
+              {!isDesignUnlocked(currentPlan, previewTemplate.type) ? (
+                <button 
+                  className="mn-action-btn"
+                  onClick={() => {
+                    setPreviewTemplate(null);
+                    setActiveTab("billing");
+                  }}
+                >
+                  Upgrade to {previewTemplate.tier === "PREMIUM" ? "Premium" : previewTemplate.tier === "GROWTH" ? "Growth" : "Starter"}
+                </button>
+              ) : (
+                <button 
+                  className="mn-action-btn"
+                  onClick={() => {
+                    handleInputChange("designType", previewTemplate.type);
+                    setPreviewTemplate(null);
+                  }}
+                >
+                  Use {previewTemplate.name} Template
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

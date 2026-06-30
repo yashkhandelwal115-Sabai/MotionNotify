@@ -75,15 +75,13 @@ export default function AnnouncementRenderer({ config }) {
   // Dynamic AI-style Banner simulated state
   const [simulatedMsgIndex, setSimulatedMsgIndex] = useState(0);
   const simulatedMsgs = [
-    `✨ Limited Time Offer!`,
-    `☀️ Summer Sale Now Live`,
-    `🎉 Shop New Arrivals`,
+    text || "🛍️ Sale is Live Now"
   ];
 
   const processText = (str) => {
     if (!str) return str;
-    const inv = config?.targetInventory != null ? config.targetInventory : 29616;
-    return str.replace(/{inventory}/g, inv.toLocaleString());
+    const inv = config?.targetInventory != null ? config.targetInventory : "{inventory}";
+    return str.replace(/{inventory}/g, inv.toString());
   };
 
   useEffect(() => {

@@ -311,7 +311,7 @@
 .mn-templates-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 16px;
 }
 
 .mn-template-select-card {
@@ -319,22 +319,32 @@
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 100px;
+  min-height: 120px;
   position: relative;
+  overflow: hidden;
 }
 
 .mn-template-select-card:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(99, 102, 241, 0.4);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4), 0 0 15px var(--accent-glow);
 }
 
 .mn-template-select-card.active {
   border-color: var(--accent-color);
-  box-shadow: 0 0 10px var(--accent-glow);
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.mn-template-thumb {
+  height: 48px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .mn-template-name {
@@ -346,9 +356,8 @@
   align-self: flex-start;
   font-size: 9px;
   font-weight: 700;
-  padding: 1px 6px;
+  padding: 2px 6px;
   border-radius: 8px;
-  margin-top: 8px;
   text-transform: uppercase;
 }
 
@@ -357,11 +366,54 @@
 .mn-template-tier-badge.growth { background-color: rgba(168,85,247,0.2); color: #c084fc; }
 .mn-template-tier-badge.premium { background-color: rgba(251,191,36,0.2); color: #fbbf24; }
 
-.mn-template-lock-icon {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  color: var(--text-secondary);
+.mn-template-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.mn-template-actions button {
+  flex: 1;
+  padding: 6px 0;
+  font-size: 11px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.mn-btn-preview {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.mn-btn-preview:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.mn-btn-use {
+  background: var(--accent-color);
+  color: white;
+}
+
+.mn-btn-use:hover {
+  background: var(--accent-hover);
+}
+
+.mn-btn-upgrade {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.mn-btn-upgrade:hover {
+  background: rgba(245, 158, 11, 0.25);
 }
 
 /* Card list manager */
@@ -709,4 +761,93 @@
   font-weight: 800;
   color: white;
   flex-shrink: 0;
+}
+
+/* Custom Preview Modal */
+.mn-preview-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: mnFadeIn 0.3s ease-out forwards;
+}
+
+.mn-preview-modal-content {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  width: 90vw;
+  max-width: 1200px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: mnScaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes mnScaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.mn-preview-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mn-preview-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.mn-preview-modal-body {
+  padding: 40px;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  position: relative;
+}
+
+.mn-preview-modal-footer {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.mn-preview-locked-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--warning);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
