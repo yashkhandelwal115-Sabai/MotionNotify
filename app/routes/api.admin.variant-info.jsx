@@ -49,12 +49,6 @@ export const loader = async ({ request }) => {
 
     const node = responseJson.data?.node;
 
-    if (responseJson.errors) {
-      console.error(`[API:VariantInfo] GraphQL Errors:`, JSON.stringify(responseJson.errors, null, 2));
-      // If inventoryItem was nullified due to access scopes on inventoryLevels, we shouldn't return false for tracking.
-      return Response.json({ error: "GraphQL Error", details: responseJson.errors[0].message }, { status: 500 });
-    }
-
     if (!node) {
       return Response.json({ error: "Variant not found" }, { status: 404 });
     }
@@ -74,8 +68,8 @@ export const loader = async ({ request }) => {
       variantTitle: node.title,
       price: node.price,
       compareAtPrice: node.compareAtPrice,
-      inventoryQuantity: totalInventory,
-      inventoryTracked: true,
+      inventoryQuantity: node.inventoryItem?.tracked ? totalInventory : null,
+      inventoryTracked: !!node.inventoryItem?.tracked,
       imageUrl: node.image?.url || node.product?.featuredImage?.url || null,
       productId: node.product?.id,
       productTitle: node.product?.title,
